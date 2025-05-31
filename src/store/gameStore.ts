@@ -9,7 +9,7 @@ export interface CollisionInfo {
     isActive: boolean;
 }
 
-interface GameStore {
+interface GameStoreState {
     // Game state
     gameState: GameState;
     score: number;
@@ -26,7 +26,9 @@ interface GameStore {
     // Physics and collisions
     activeCollisions: CollisionInfo[];
     totalCollisions: number;
+}
 
+interface GameStore extends GameStoreState {
     // Actions
     setGameState: (state: GameState) => void;
     setScore: (score: number) => void;

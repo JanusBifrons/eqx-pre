@@ -83,7 +83,7 @@ export async function runAsteroidsDemo() {
     // Add game systems
     const inputSystem = createInputSystem(playerShip);
     const laserSystem = createLaserCleanupSystem();
-    
+
     gameLoop.addSystem(inputSystem);
     gameLoop.addSystem(laserSystem);
 
@@ -174,7 +174,7 @@ function createAsteroids(entityManager: EntityManager, physicsSystem: PhysicsSys
         const rigidBody = asteroid.getComponent('rigidbody') as RigidBodyComponent;
         if (rigidBody) {
             physicsSystem.addRigidBodyComponent(rigidBody);
-            
+
             // Random velocity and rotation
             const speed = 0.5 + Math.random() * 1.5;
             const angle = Math.random() * Math.PI * 2;
@@ -182,7 +182,7 @@ function createAsteroids(entityManager: EntityManager, physicsSystem: PhysicsSys
                 x: Math.cos(angle) * speed,
                 y: Math.sin(angle) * speed
             });
-            
+
             if (rigidBody.body) {
                 Body.setAngularVelocity(rigidBody.body, (Math.random() - 0.5) * 0.1);
             }
@@ -269,7 +269,7 @@ function createAsteroidShape(size: number): Graphics {
 
 function setupCollisionHandling(entityManager: EntityManager, physicsSystem: PhysicsSystem) {
     const collisionManager = physicsSystem.getCollisionManager();
-    
+
     if (!collisionManager) {
         console.warn('CollisionManager not available');
         return;
@@ -281,7 +281,7 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
         const { entityA, entityB, bodyA, bodyB } = event;
 
         // Check for laser-asteroid collision
-        const isLaserAsteroidCollision = 
+        const isLaserAsteroidCollision =
             (bodyA.label === 'laser' && bodyB.label?.startsWith('asteroid_')) ||
             (bodyB.label === 'laser' && bodyA.label?.startsWith('asteroid_'));
 
@@ -300,7 +300,7 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
         }
 
         // Check for player-asteroid collision
-        const isPlayerAsteroidCollision = 
+        const isPlayerAsteroidCollision =
             (bodyA.label === 'player_ship' && bodyB.label?.startsWith('asteroid_')) ||
             (bodyB.label === 'player_ship' && bodyA.label?.startsWith('asteroid_'));
 
@@ -309,18 +309,18 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
             const asteroidEntityId = bodyA.label === 'player_ship' ? entityB : entityA;
 
             console.log('💥 Player hit asteroid!');
-            
+
             // You can add different behaviors here:
             // Option 1: Destroy the player (game over)
             // entityManager.destroyEntity(playerEntityId);
-            
+
             // Option 2: Damage the player
             // damagePlayer(playerEntityId);
-            
+
             // Option 3: Just visual/audio feedback
             const playerEntity = entityManager.getEntity(playerEntityId);
             const asteroidEntity = entityManager.getEntity(asteroidEntityId);
-            
+
             if (playerEntity) {
                 // Flash the player red to indicate damage
                 const renderComp = playerEntity.getComponent('render') as RenderComponent;
@@ -333,7 +333,7 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
                     }, 300);
                 }
             }
-            
+
             // Option 4: Shatter the asteroid on impact
             if (asteroidEntity) {
                 shatterAsteroid(asteroidEntity, entityManager, physicsSystem);
@@ -341,7 +341,7 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
         }
 
         // Check for asteroid-asteroid collisions (optional - for more realistic physics)
-        const isAsteroidAsteroidCollision = 
+        const isAsteroidAsteroidCollision =
             bodyA.label?.startsWith('asteroid_') && bodyB.label?.startsWith('asteroid_');
 
         if (isAsteroidAsteroidCollision) {
@@ -356,7 +356,7 @@ function setupCollisionHandling(entityManager: EntityManager, physicsSystem: Phy
 function shatterAsteroid(asteroid: any, entityManager: EntityManager, physicsSystem: PhysicsSystem) {
     const transform = asteroid.getComponent('transform') as TransformComponent;
     const rigidBody = asteroid.getComponent('rigidbody') as RigidBodyComponent;
-    
+
     if (!transform || !rigidBody) return;
 
     const { x, y } = transform.position;
@@ -411,7 +411,7 @@ function createAsteroidFragment(entityManager: EntityManager, physicsSystem: Phy
     const rigidBody = fragment.getComponent('rigidbody') as RigidBodyComponent;
     if (rigidBody) {
         physicsSystem.addRigidBodyComponent(rigidBody);
-        
+
         const speed = 2 + Math.random() * 3;
         const velocityAngle = Math.random() * Math.PI * 2;
         rigidBody.setVelocity({
@@ -428,7 +428,7 @@ function createAsteroidFragment(entityManager: EntityManager, physicsSystem: Phy
 function enableMouseInteraction(app: Application, physicsSystem: PhysicsSystem) {
     const pixiApp = app.getPixiApp();
     const canvas = (pixiApp.view as HTMLCanvasElement) || (pixiApp.renderer.view as HTMLCanvasElement);
-    
+
     if (canvas) {
         physicsSystem.enableMouseInteraction(canvas);
         console.log('🖱️ Mouse interaction enabled');
@@ -481,18 +481,19 @@ function createInputSystem(playerShip: any) {
                 if (currentTime - lastFireTime > fireRate) {
                     const entityManager = serviceContainer.get<EntityManager>('entityManager');
                     const physicsSystem = serviceContainer.get<PhysicsSystem>('physicsSystem');
-                    
+
                     const laserX = transform.position.x + Math.sin(transform.rotation) * 20;
                     const laserY = transform.position.y - Math.cos(transform.rotation) * 20;
-                    
+
                     createLaser(entityManager, physicsSystem, laserX, laserY, transform.rotation);
                     lastFireTime = currentTime;
                 }
-            }
-
-            // Screen wrapping
+            }            // Screen wrapping
             wrapAroundScreen(rigidBody, transform);
             wrapAllAsteroids();
+        },
+        destroy: () => {
+            // Cleanup input system resources if needed
         }
     };
 }
@@ -519,6 +520,9 @@ function createLaserCleanupSystem() {
                     entityManager.destroyEntity(laser.id);
                 }
             });
+        },
+        destroy: () => {
+            // Cleanup laser system resources if needed
         }
     };
 }

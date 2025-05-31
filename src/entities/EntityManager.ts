@@ -57,5 +57,8 @@ export class EntityManager {
 
     getEntityCount(): number {
         return this.entities.size;
+    } update(_deltaTime: number): void {
+        // Update all entities - this could be enhanced to call entity update methods
+        // For now, this is a placeholder to satisfy the interface
     }
 }
