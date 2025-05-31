@@ -1,10 +1,10 @@
+// filepath: c:\Users\alecv\Desktop\eqx-pre\eqx-pre\src\enhanced-demo.ts
 import { Application } from '@/core/Application';
 import { GameLoop } from '@/core/GameLoop';
 import { RenderSystem } from '@/systems/RenderSystem';
 import { PhysicsSystem } from '@/systems/PhysicsSystem';
 import { TransformSystem } from '@/systems/TransformSystem';
 import { EntityManager } from '@/entities/EntityManager';
-import { Entity } from '@/entities/Entity';
 import { TransformComponent } from '@/components/TransformComponent';
 import { RenderComponent } from '@/components/RenderComponent';
 import { RigidBodyComponent } from '@/components/RigidBodyComponent';
@@ -53,16 +53,30 @@ export async function runEnhancedDemo() {
     // Register systems in service container
     serviceContainer.register('physicsSystem', physicsSystem);
     serviceContainer.register('transformSystem', transformSystem);
-    serviceContainer.register('renderSystem', renderSystem);
+    serviceContainer.register('renderSystem', renderSystem);    // Get collision manager from physics system
+    const collisionManager = physicsSystem.getCollisionManager();    // Enable mouse interaction for dragging physics objects
+    const pixiApp = app.getPixiApp();
+    console.log('🔍 Debugging canvas access...');
+    console.log('pixiApp:', pixiApp);
+    console.log('pixiApp.view:', pixiApp.view);
+    console.log('pixiApp.renderer.view:', pixiApp.renderer.view);
 
-    // Get collision manager from physics system
-    const collisionManager = physicsSystem.getCollisionManager();
+    // Try different ways to get the canvas
+    const canvas = (pixiApp.view as HTMLCanvasElement) || (pixiApp.renderer.view as HTMLCanvasElement);
+    console.log('canvas element:', canvas);
+
+    if (canvas) {
+        physicsSystem.enableMouseInteraction(canvas);
+        console.log('🖱️ Mouse interaction enabled - you can now drag physics objects!');
+    } else {
+        console.error('❌ Could not find canvas element for mouse interaction');
+    }
 
     if (collisionManager) {
         console.log('✅ CollisionManager initialized');
 
         // Setup collision callbacks
-        collisionManager.onCollisionType('collisionStart', (event, type) => {
+        collisionManager.onCollisionType('collisionStart', (event) => {
             console.log(`🎯 Collision started: ${event.entityA} <-> ${event.entityB}`);
 
             // Change color on collision for visual feedback
@@ -71,20 +85,20 @@ export async function runEnhancedDemo() {
 
             if (entityA) {
                 const renderComp = entityA.getComponent<RenderComponent>('render');
-                if (renderComp && renderComp.graphics instanceof Graphics) {
-                    renderComp.graphics.tint = 0xff6b6b; // Red tint
+                if (renderComp && renderComp.displayObject instanceof Graphics) {
+                    renderComp.displayObject.tint = 0xff6b6b; // Red tint
                 }
             }
 
             if (entityB) {
                 const renderComp = entityB.getComponent<RenderComponent>('render');
-                if (renderComp && renderComp.graphics instanceof Graphics) {
-                    renderComp.graphics.tint = 0x4ecdc4; // Teal tint
+                if (renderComp && renderComp.displayObject instanceof Graphics) {
+                    renderComp.displayObject.tint = 0x4ecdc4; // Teal tint
                 }
             }
         });
 
-        collisionManager.onCollisionType('collisionEnd', (event, type) => {
+        collisionManager.onCollisionType('collisionEnd', (event) => {
             console.log(`💫 Collision ended: ${event.entityA} <-> ${event.entityB}`);
 
             // Reset color when collision ends
@@ -93,21 +107,19 @@ export async function runEnhancedDemo() {
 
             if (entityA) {
                 const renderComp = entityA.getComponent<RenderComponent>('render');
-                if (renderComp && renderComp.graphics instanceof Graphics) {
-                    renderComp.graphics.tint = 0xffffff; // Reset to white
+                if (renderComp && renderComp.displayObject instanceof Graphics) {
+                    renderComp.displayObject.tint = 0xffffff; // Reset to white
                 }
             }
 
             if (entityB) {
                 const renderComp = entityB.getComponent<RenderComponent>('render');
-                if (renderComp && renderComp.graphics instanceof Graphics) {
-                    renderComp.graphics.tint = 0xffffff; // Reset to white
+                if (renderComp && renderComp.displayObject instanceof Graphics) {
+                    renderComp.displayObject.tint = 0xffffff; // Reset to white
                 }
             }
         });
-    }
-
-    // Create demo scene with various physics objects
+    }    // Create demo scene with various physics objects
     createDemoScene(entityManager, physicsSystem);
 
     // Setup UI
@@ -115,30 +127,29 @@ export async function runEnhancedDemo() {
 
     // Start the game loop
     gameLoop.start();
-    useGameStore.getState().setGameState(GameState.RUNNING);
-
-    console.log('✅ Enhanced Physics Demo started successfully!');
+    useGameStore.getState().setGameState(GameState.RUNNING); console.log('✅ Enhanced Physics Demo started successfully!');
     console.log('📋 Demo features:');
     console.log('  - RigidBodyComponent with various shapes');
     console.log('  - CollisionManager with event handling');
     console.log('  - Visual collision feedback');
     console.log('  - Zustand state integration');
     console.log('  - Real-time collision statistics');
+    console.log('  - Mouse interaction for dragging objects');
 }
 
 function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSystem) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
 
-    // Create ground platform
-    const ground = new Entity('ground');
-    ground.addComponent(new TransformComponent(ground.id, centerX, window.innerHeight - 50));
+    // Create ground platform using EntityManager.createEntity
+    const ground = entityManager.createEntity('ground');
+    ground.addComponent(new TransformComponent(ground.id, { x: centerX, y: window.innerHeight - 50 }));
 
     const groundGraphics = new Graphics();
-    groundGraphics.rect(-200, -25, 400, 50);
-    groundGraphics.fill(0x2c3e50);
+    groundGraphics.beginFill(0x2c3e50);
+    groundGraphics.drawRect(-200, -25, 400, 50);
+    groundGraphics.endFill();
     ground.addComponent(new RenderComponent(ground.id, groundGraphics));
-
     ground.addComponent(new RigidBodyComponent(
         ground.id,
         { x: centerX, y: window.innerHeight - 50 },
@@ -146,74 +157,83 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
         { isStatic: true, label: 'ground', friction: 0.7, restitution: 0.3 }
     ));
 
-    entityManager.addEntity(ground);
+    // Add the RigidBodyComponent to the physics world
+    const groundRigidBody = ground.getComponent<RigidBodyComponent>('rigidbody');
+    if (groundRigidBody) {
+        physicsSystem.addRigidBodyComponent(groundRigidBody);
+    }
 
     // Create dynamic boxes
     for (let i = 0; i < 5; i++) {
-        const box = new Entity(`box_${i}`);
+        const box = entityManager.createEntity(`box_${i}`);
         const x = centerX + (i - 2) * 80;
         const y = centerY - 200 - i * 100;
 
-        box.addComponent(new TransformComponent(box.id, x, y));
+        box.addComponent(new TransformComponent(box.id, { x, y }));
 
         const boxGraphics = new Graphics();
-        boxGraphics.rect(-25, -25, 50, 50);
-        boxGraphics.fill(0xe74c3c + i * 0x001100); // Slight color variation
-        box.addComponent(new RenderComponent(box.id, boxGraphics));
-
-        box.addComponent(new RigidBodyComponent(
+        boxGraphics.beginFill(0xe74c3c + i * 0x001100); // Slight color variation
+        boxGraphics.drawRect(-25, -25, 50, 50);
+        boxGraphics.endFill();
+        box.addComponent(new RenderComponent(box.id, boxGraphics)); box.addComponent(new RigidBodyComponent(
             box.id,
             { x, y },
             { type: 'rectangle', width: 50, height: 50 },
             {
-                density: 0.001,
+                density: 0.1, // Increased from 0.01 for much better mouse interaction
                 friction: 0.3,
                 restitution: 0.6,
                 label: `box_${i}`
             }
         ));
 
-        entityManager.addEntity(box);
+        // Add the RigidBodyComponent to the physics world
+        const boxRigidBody = box.getComponent<RigidBodyComponent>('rigidbody');
+        if (boxRigidBody) {
+            physicsSystem.addRigidBodyComponent(boxRigidBody);
+        }
     }
 
     // Create dynamic circles
     for (let i = 0; i < 3; i++) {
-        const circle = new Entity(`circle_${i}`);
+        const circle = entityManager.createEntity(`circle_${i}`);
         const x = centerX + 150 + i * 60;
         const y = centerY - 300;
 
-        circle.addComponent(new TransformComponent(circle.id, x, y));
+        circle.addComponent(new TransformComponent(circle.id, { x, y }));
 
         const circleGraphics = new Graphics();
-        circleGraphics.circle(0, 0, 25);
-        circleGraphics.fill(0x3498db + i * 0x001100);
-        circle.addComponent(new RenderComponent(circle.id, circleGraphics));
-
-        circle.addComponent(new RigidBodyComponent(
+        circleGraphics.beginFill(0x3498db + i * 0x001100);
+        circleGraphics.drawCircle(0, 0, 25);
+        circleGraphics.endFill();
+        circle.addComponent(new RenderComponent(circle.id, circleGraphics)); circle.addComponent(new RigidBodyComponent(
             circle.id,
             { x, y },
             { type: 'circle', radius: 25 },
             {
-                density: 0.001,
+                density: 0.1, // Increased from 0.01 for much better mouse interaction
                 friction: 0.2,
                 restitution: 0.8,
                 label: `circle_${i}`
             }
         ));
 
-        entityManager.addEntity(circle);
+        // Add the RigidBodyComponent to the physics world
+        const circleRigidBody = circle.getComponent<RigidBodyComponent>('rigidbody');
+        if (circleRigidBody) {
+            physicsSystem.addRigidBodyComponent(circleRigidBody);
+        }
     }
 
     // Create sensor (trigger) area
-    const sensor = new Entity('sensor');
-    sensor.addComponent(new TransformComponent(sensor.id, centerX - 150, centerY));
+    const sensor = entityManager.createEntity('sensor');
+    sensor.addComponent(new TransformComponent(sensor.id, { x: centerX - 150, y: centerY }));
 
     const sensorGraphics = new Graphics();
-    sensorGraphics.rect(-40, -40, 80, 80);
-    sensorGraphics.fill(0x9b59b6);
-    sensorGraphics.alpha = 0.5; // Semi-transparent
+    sensorGraphics.beginFill(0x9b59b6, 0.5); // Semi-transparent
+    sensorGraphics.drawRect(-40, -40, 80, 80);
+    sensorGraphics.endFill();
     sensor.addComponent(new RenderComponent(sensor.id, sensorGraphics));
-
     sensor.addComponent(new RigidBodyComponent(
         sensor.id,
         { x: centerX - 150, y: centerY },
@@ -225,17 +245,21 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
         }
     ));
 
-    entityManager.addEntity(sensor);
+    // Add the RigidBodyComponent to the physics world
+    const sensorRigidBody = sensor.getComponent<RigidBodyComponent>('rigidbody');
+    if (sensorRigidBody) {
+        physicsSystem.addRigidBodyComponent(sensorRigidBody);
+    }
 
     // Create moving platform
-    const platform = new Entity('platform');
-    platform.addComponent(new TransformComponent(platform.id, centerX + 200, centerY + 100));
+    const platform = entityManager.createEntity('platform');
+    platform.addComponent(new TransformComponent(platform.id, { x: centerX + 200, y: centerY + 100 }));
 
     const platformGraphics = new Graphics();
-    platformGraphics.rect(-60, -10, 120, 20);
-    platformGraphics.fill(0xf39c12);
+    platformGraphics.beginFill(0xf39c12);
+    platformGraphics.drawRect(-60, -10, 120, 20);
+    platformGraphics.endFill();
     platform.addComponent(new RenderComponent(platform.id, platformGraphics));
-
     platform.addComponent(new RigidBodyComponent(
         platform.id,
         { x: centerX + 200, y: centerY + 100 },
@@ -246,7 +270,11 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
         }
     ));
 
-    entityManager.addEntity(platform);
+    // Add the RigidBodyComponent to the physics world
+    const platformRigidBody = platform.getComponent<RigidBodyComponent>('rigidbody');
+    if (platformRigidBody) {
+        physicsSystem.addRigidBodyComponent(platformRigidBody);
+    }
 
     // Animate the moving platform
     let platformTime = 0;
@@ -285,21 +313,24 @@ function createUI(app: Application) {
     statsText.y = 30;
     pixiApp.stage.addChild(statsText);
 
-    const instructionsText = new Text('Enhanced Physics Demo\n• Watch objects collide and change colors\n• Sensor area (purple) detects objects\n• Moving platform (orange) animates', textStyle);
+    const instructionsText = new Text('Enhanced Physics Demo\n• Watch objects collide and change colors\n• Sensor area (purple) detects objects\n• Moving platform (orange) animates\n• Click and drag to move physics objects!', textStyle);
     instructionsText.x = 10;
-    instructionsText.y = window.innerHeight - 80;
+    instructionsText.y = window.innerHeight - 100;
     pixiApp.stage.addChild(instructionsText);
 
     // Update UI with game state
     const updateUI = () => {
         const gameState = useGameStore.getState();
-        const collisionManager = serviceContainer.get('physicsSystem')?.getCollisionManager();
+        const physicsSystem = serviceContainer.get('physicsSystem') as PhysicsSystem;
 
         collisionText.text = `Active Collisions: ${gameState.activeCollisions.length}`;
 
-        if (collisionManager) {
-            const stats = collisionManager.getCollisionStats();
-            statsText.text = `Total Collisions: ${gameState.totalCollisions} | Callbacks: ${stats.totalCallbacks}`;
+        if (physicsSystem && physicsSystem.getCollisionManager) {
+            const collisionManager = physicsSystem.getCollisionManager();
+            if (collisionManager) {
+                const stats = collisionManager.getCollisionStats();
+                statsText.text = `Total Collisions: ${gameState.totalCollisions} | Callbacks: ${stats.totalCallbacks}`;
+            }
         }
 
         requestAnimationFrame(updateUI);
