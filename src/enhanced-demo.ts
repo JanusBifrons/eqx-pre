@@ -164,7 +164,7 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     }
 
     // Create dynamic boxes
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 5; i++) {
         const box = entityManager.createEntity();
         const x = centerX + (i - 2) * 80;
         const y = centerY - 200 - i * 100;
@@ -195,7 +195,7 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     }
 
     // Create dynamic circles
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
         const circle = entityManager.createEntity();
         const x = centerX + 150 + (i % 5) * 60;
         const y = centerY - 300 - Math.floor(i / 5) * 60;
@@ -326,9 +326,15 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     const animatePlatform = () => {
         platformTime += 0.02;
         const platformRigidBody = platform.getComponent<RigidBodyComponent>('rigidbody');
-        if (platformRigidBody) {
+        const platformTransform = platform.getComponent<TransformComponent>('transform');
+
+        if (platformRigidBody && platformTransform) {
             const newY = centerY + 100 + Math.sin(platformTime) * 50;
-            platformRigidBody.setPosition({ x: centerX + 200, y: newY });
+            const newPosition = { x: centerX + 200, y: newY };
+
+            // Update both physics body and transform component
+            platformRigidBody.setPosition(newPosition);
+            platformTransform.setPosition(newPosition.x, newPosition.y);
         }
         requestAnimationFrame(animatePlatform);
     };

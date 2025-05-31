@@ -1,21 +1,53 @@
 import { Body, Bodies } from 'matter-js';
 import { IComponent, Vector2 } from '@/core/types';
 
+/**
+ * Configuration options for creating a rigid body in the physics simulation.
+ * These options control the physical properties and behavior of the rigid body. 🏗️
+ */
 export interface RigidBodyOptions {
+    /** Whether the rigid body is static (immovable) or dynamic. Defaults to false for dynamic bodies. 🏔️ */
     isStatic?: boolean;
+
+    /** Whether the rigid body acts as a sensor (no collision response, only collision detection). 👁️ */
     isSensor?: boolean;
+
+    /** The density of the rigid body, affecting its mass when combined with area. Higher values create heavier objects. ⚖️ */
     density?: number;
+
+    /** The friction coefficient between this body and other bodies during contact. Range: 0 (no friction) to 1 (high friction). 🤝 */
     friction?: number;
+
+    /** Air resistance applied to the body, slowing down movement over time. Higher values create more drag. 💨 */
     frictionAir?: number;
+
+    /** The restitution (bounciness) of the body during collisions. Range: 0 (no bounce) to 1 (perfect bounce). 🏀 */
     restitution?: number;
+
+    /** The mass of the rigid body. If not specified, it will be calculated from density and area. 📏 */
     mass?: number;
+
+    /** The initial rotation angle of the body in radians. 🔄 */
     angle?: number;
+
+    /** The initial angular velocity (rotation speed) of the body in radians per second. 🌪️ */
     angularVelocity?: number;
+
+    /** The initial linear velocity of the body as a 2D vector. 🚀 */
     velocity?: Vector2;
+
+    /** A string identifier for the rigid body, useful for debugging and identification. 🏷️ */
     label?: string;
+
+    /** Collision filtering options to control which bodies can collide with each other. 🚧 */
     collisionFilter?: {
+        /** The collision category bitmask that this body belongs to. 📦 */
         category?: number;
+
+        /** The collision mask bitmask that determines which categories this body can collide with. 🎭 */
         mask?: number;
+
+        /** The collision group. Bodies with the same positive group always collide, same negative group never collide. 👥 */
         group?: number;
     };
 }
@@ -50,10 +82,6 @@ export class RigidBodyComponent implements IComponent {
 
         // Set the label for identification
         this.body.label = options.label || `Entity_${entityId}`;
-
-
-        console.log(`RigidBodyComponent created for entity ${entityId} with shape ${JSON.stringify(shape)}`);
-        console.log(`RigidBodyComponent created for entity ${entityId} with label ${this.body.label}`);
 
         // Apply additional options
         this.applyOptions(options);
