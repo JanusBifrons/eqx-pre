@@ -4,28 +4,73 @@ import { ISystem, Vector2 } from '@/core/types';
 import { serviceContainer } from '@/core/ServiceContainer';
 import { CollisionManager } from './CollisionManager';
 
+/**
+ * Configuration options for the physics system.
+ * 
+ * @interface PhysicsConfig
+ */
 export interface PhysicsConfig {
+    /** The gravity vector applied to all dynamic bodies in the world. */
     gravity: Vector2;
+
+    /** Whether to enable automatic sleeping for bodies at rest to improve performance. */
     enableSleeping: boolean;
+
+    /** Time scaling factor for physics simulation. 1.0 = normal speed, 0.5 = half speed, etc. */
     timeScale: number;
+
+    /** Whether to enable debug rendering for visualizing physics bodies and constraints. */
     enableDebugRender: boolean;
 }
 
+/**
+ * Configuration options for creating a rigid body in the physics system.
+ * 
+ * @interface RigidBodyOptions
+ */
 export interface RigidBodyOptions {
+    /** Whether the body is static (immovable) or dynamic. Default is false (dynamic). */
     isStatic?: boolean;
+
+    /** Whether the body acts as a sensor (triggers collision events but doesn't physically collide). Default is false. */
     isSensor?: boolean;
+
+    /** The density of the body, affecting its mass when combined with area. Default is typically 0.001. */
     density?: number;
+
+    /** The friction coefficient between this body and others during contact. Range: 0-1. */
     friction?: number;
+
+    /** Air resistance applied to the body, reducing velocity over time. Range: 0-1. */
     frictionAir?: number;
+
+    /** The restitution (bounciness) of the body during collisions. Range: 0-1. */
     restitution?: number;
+
+    /** The mass of the body. If specified, overrides density-based mass calculation. */
     mass?: number;
+
+    /** The initial rotation angle of the body in radians. */
     angle?: number;
+
+    /** The initial angular velocity of the body in radians per second. */
     angularVelocity?: number;
+
+    /** The initial linear velocity of the body as a 2D vector. */
     velocity?: Vector2;
+
+    /** A string identifier for the body, useful for debugging and identification. */
     label?: string;
+
+    /** Collision filtering options to control which bodies can collide with each other. */
     collisionFilter?: {
+        /** The collision category bitmask for this body. Bodies with matching categories can collide. */
         category?: number;
+
+        /** The collision mask bitmask. This body will collide with others whose category matches this mask. */
         mask?: number;
+
+        /** The collision group. Bodies with the same positive group always collide, same negative group never collide. */
         group?: number;
     };
 }

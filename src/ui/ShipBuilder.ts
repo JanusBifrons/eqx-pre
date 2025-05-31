@@ -16,6 +16,7 @@ export interface BuilderOptions {
     snapToGrid: boolean;
     showGrid: boolean;
     showConnectionPoints: boolean;
+    enableDebugVisualization?: boolean;
 }
 
 export class ShipBuilder {
@@ -37,13 +38,11 @@ export class ShipBuilder {
     private panSpeed: number = 1;
     private zoomSpeed: number = 0.1;
     private minZoom: number = 0.5;
-    private maxZoom: number = 3;
-
-    // UI elements
+    private maxZoom: number = 3;    // UI elements
     private statsContainer: Container;
     private statsText: Text;
-    private buildButton: Graphics;
     private testButton: Graphics;
+    private clearButton: Graphics;
     private instructionsContainer: Container;
 
     // Layout constants
@@ -54,20 +53,20 @@ export class ShipBuilder {
     private readonly BUTTON_WIDTH = 120;
     private readonly BUTTON_HEIGHT = 40;
     private readonly INSTRUCTIONS_WIDTH = 350;
-    private readonly INSTRUCTIONS_HEIGHT = 250; constructor(container: Container, options: Partial<BuilderOptions> = {}) {
+    private readonly INSTRUCTIONS_HEIGHT = 250;
+
+    constructor(container: Container, options: Partial<BuilderOptions> = {}) {
         this.container = container;
-        this.ship = new Ship();
-        this.options = {
+        this.ship = new Ship(); this.options = {
             gridSize: 32,
             gridWidth: 40,
             gridHeight: 30,
             snapToGrid: true,
             showGrid: true,
             showConnectionPoints: true,
+            enableDebugVisualization: false,
             ...options
-        };
-
-        // Initialize camera system
+        };// Initialize camera system
         this.worldContainer = new Container();
         this.container.addChild(this.worldContainer);
 
@@ -75,12 +74,14 @@ export class ShipBuilder {
         this.blockPalette = new Container();
         this.statsContainer = new Container();
         this.statsText = new Text('', { fill: 0xFFFFFF, fontSize: 14 });
-        this.buildButton = new Graphics();
         this.testButton = new Graphics();
+        this.clearButton = new Graphics();
         this.instructionsContainer = new Container();
 
         this.initialize();
-    } private initialize(): void {
+    }
+
+    private initialize(): void {
         // Add world objects to the world container (things that can be panned/zoomed)
         // Only add grid graphics if they should be shown
         if (this.options.showGrid) {
@@ -90,32 +91,38 @@ export class ShipBuilder {
             this.addPlacementAreaVisualization();
         }
 
-        this.worldContainer.addChild(this.ship.container);
+        this.worldContainer.addChild(this.ship.container);        // Add UI elements directly to main container (fixed position, no panning)
+        // Set z-indexes to ensure proper layering
+        this.statsContainer.zIndex = 10;
+        this.instructionsContainer.zIndex = 20;
+        this.blockPalette.zIndex = 100; // Highest z-index for palette
 
-        // Add UI elements directly to main container (fixed position, no panning)
-        this.container.addChild(this.blockPalette);
         this.container.addChild(this.statsContainer);
         this.container.addChild(this.instructionsContainer);
+        this.container.addChild(this.blockPalette);
 
-        this.setupGrid();
+        // Enable z-index sorting on the main container
+        this.container.sortableChildren = true; this.setupGrid();
         this.setupPalette();
         this.setupUI();
         this.setupInstructions();
         this.setupInteraction();
         this.updateStats();
 
+        // Add debug visualization if enabled
+        if (this.options.enableDebugVisualization) {
+            this.addDebugVisualization();
+        }
+
         // Set initial camera position
         this.updateCameraTransform();
+
+        // Initialize UI positioning based on screen size (assume 1600x1000 as default)
+        this.resize(1600, 1000);
     } private setupGrid(): void {
         // Grid is no longer rendered, but we keep this method for consistency
-        // and potential future grid re-enabling
-
-        // Create an empty graphics object without any rendering
+        // and potential future grid re-enabling        // Create an empty graphics object without any rendering
         this.gridGraphics.clear();
-
-        // Ensure the grid graphics are not interactive
-        this.gridGraphics.interactive = false;
-        this.gridGraphics.interactiveChildren = false;
 
         // Log that we're using a gridless setup
         console.log("Using gridless design for better mouse tracking");
@@ -127,10 +134,11 @@ export class ShipBuilder {
         bg.endFill();
         this.blockPalette.addChild(bg);
 
-        // Position palette on the left side with proper margins
-        const gridHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
-        this.blockPalette.x = -gridHalfWidth - this.PALETTE_WIDTH - 20;
-        this.blockPalette.y = -this.PALETTE_HEIGHT / 2;
+        // Position palette on the left side using screen coordinates
+        // Since container is centered, left edge is at -screenWidth/2
+        // For 1600x1000 screen: left edge is at -800
+        this.blockPalette.x = -780; // Near left edge with some margin
+        this.blockPalette.y = -480; // Near top edge with some margin
 
         // Add title
         const title = new Text('Block Palette', { fill: 0xFFFFFF, fontSize: 16 });
@@ -225,10 +233,10 @@ export class ShipBuilder {
 
         return button;
     } private setupUI(): void {
-        // Position stats display on the right side with proper margins
-        const gridHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
-        this.statsContainer.x = gridHalfWidth + 20;
-        this.statsContainer.y = -this.STATS_HEIGHT / 2;
+        // Position stats display on the right side using screen coordinates
+        // For 1600x1000 screen: right edge is at 800
+        this.statsContainer.x = 780 - this.STATS_WIDTH; // Near right edge
+        this.statsContainer.y = -480; // Near top edge with some margin
 
         const statsBg = new Graphics();
         statsBg.beginFill(0x222222, 0.9);
@@ -248,43 +256,65 @@ export class ShipBuilder {
         // Build/Test buttons
         this.setupButtons();
     } private setupButtons(): void {
-        const gridHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
-        const buttonX = gridHalfWidth + 20;
+        // Clear button
+        this.clearButton.clear();
+        this.clearButton.beginFill(0xFF4444, 0.8);
+        this.clearButton.lineStyle(2, 0xFF6666);
+        this.clearButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
+        this.clearButton.endFill();
+        this.clearButton.x = 780 - this.BUTTON_WIDTH;
+        this.clearButton.y = -480 + this.STATS_HEIGHT + 30; this.clearButton.interactive = true;
+        this.clearButton.eventMode = 'static';
+        this.clearButton.on('pointerdown', () => this.clearShip());
+        this.container.addChild(this.clearButton);
 
-        // Build button
-        this.buildButton.beginFill(0x00AA00, 0.8);
-        this.buildButton.lineStyle(2, 0x00FF00);
-        this.buildButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
-        this.buildButton.endFill();
-        this.buildButton.x = buttonX;
-        this.buildButton.y = this.STATS_HEIGHT / 2 + 30;
-        this.buildButton.interactive = true;
-        this.buildButton.eventMode = 'static';
-        this.buildButton.on('pointerdown', () => this.toggleBuildMode());
-
-        const buildText = new Text('Build Mode', { fill: 0xFFFFFF, fontSize: 14 });
-        buildText.x = 15;
-        buildText.y = 10;
-        this.buildButton.addChild(buildText);
-
-        // Test button
-        this.testButton.beginFill(0xAA6600, 0.8);
-        this.testButton.lineStyle(2, 0xFF9900);
+        const clearText = new Text('Clear Ship', {
+            fontSize: 14,
+            fill: 0xFFFFFF,
+            fontFamily: 'Arial'
+        });
+        clearText.x = this.clearButton.x + (this.BUTTON_WIDTH - clearText.width) / 2;
+        clearText.y = this.clearButton.y + (this.BUTTON_HEIGHT - clearText.height) / 2;
+        this.container.addChild(clearText);// Test button
+        this.testButton.clear();
+        this.testButton.beginFill(0x44FF44, 0.8);
+        this.testButton.lineStyle(2, 0x66FF66);
         this.testButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
         this.testButton.endFill();
-        this.testButton.x = buttonX;
-        this.testButton.y = this.STATS_HEIGHT / 2 + 80;
-        this.testButton.interactive = true;
+        this.testButton.x = 780 - this.BUTTON_WIDTH;
+        this.testButton.y = -480 + this.STATS_HEIGHT + 80; this.testButton.interactive = true;
         this.testButton.eventMode = 'static';
         this.testButton.on('pointerdown', () => this.testShip());
-
-        const testText = new Text('Test Ship', { fill: 0xFFFFFF, fontSize: 14 });
-        testText.x = 25;
-        testText.y = 10;
-        this.testButton.addChild(testText);
-
-        this.container.addChild(this.buildButton);
         this.container.addChild(this.testButton);
+
+        const testText = new Text('Test Ship', {
+            fontSize: 14,
+            fill: 0x000000,
+            fontFamily: 'Arial'
+        });
+        testText.x = this.testButton.x + (this.BUTTON_WIDTH - testText.width) / 2;
+        testText.y = this.testButton.y + (this.BUTTON_HEIGHT - testText.height) / 2;
+        this.container.addChild(testText);// Repair connections button
+        const repairButton = new Graphics();
+        repairButton.clear();
+        repairButton.beginFill(0xFFAA00, 0.8);
+        repairButton.lineStyle(2, 0xFFCC44);
+        repairButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
+        repairButton.endFill();
+        repairButton.x = 780 - this.BUTTON_WIDTH;
+        repairButton.y = -480 + this.STATS_HEIGHT + 130;
+        repairButton.interactive = true;
+        repairButton.eventMode = 'static';
+        repairButton.on('pointerdown', () => this.repairConnections());
+        this.container.addChild(repairButton);
+
+        const repairText = new Text('Repair Links', {
+            fontSize: 14,
+            fill: 0x000000,
+            fontFamily: 'Arial'
+        }); repairText.x = repairButton.x + (this.BUTTON_WIDTH - repairText.width) / 2;
+        repairText.y = repairButton.y + (this.BUTTON_HEIGHT - repairText.height) / 2;
+        this.container.addChild(repairText);
     } private setupInteraction(): void {
         // Set up interaction on the main container to catch all events
         this.container.interactive = true;
@@ -316,9 +346,7 @@ export class ShipBuilder {
         this.container.on('pointerdown', (event: FederatedPointerEvent) => this.onPointerDown(event));
         this.container.on('pointerup', (event: FederatedPointerEvent) => this.onPointerUp(event));
         this.container.on('pointerupoutside', (event: FederatedPointerEvent) => this.onPointerUp(event));
-        this.container.on('wheel', (event: any) => this.onWheel(event));
-
-        // Add keyboard controls
+        this.container.on('wheel', (event: any) => this.onWheel(event));        // Add keyboard controls
         this.setupKeyboardControls();
     } private selectBlockType(blockId: string, buttonContainer?: Container): void {
         this.selectedBlockType = blockId;
@@ -341,18 +369,41 @@ export class ShipBuilder {
             bg.clear();
             bg.beginFill(0x004488, 0.9);
             bg.lineStyle(3, 0x00AAFF);
+            bg.drawRect(0, 0, 180, 50); bg.endFill();
+        }
+
+        // Remove existing preview
+        if (this.previewBlock) {
+            this.previewBlock.destroy();
+            this.previewBlock = null;
+        }        // Create new preview block
+        this.recreatePreviewBlock();
+
+        console.log(`Selected block type: ${blockId}`);
+    }
+
+    private deselectBlockType(): void {
+        // Clear the selected block type
+        this.selectedBlockType = null;
+
+        // Reset visual selection feedback
+        if (this.selectedButton) {
+            const bg = this.selectedButton.getChildAt(0) as Graphics;
+            bg.clear();
+            bg.beginFill(0x444444, 0.8);
+            bg.lineStyle(2, 0x666666);
             bg.drawRect(0, 0, 180, 50);
             bg.endFill();
-        }        // Remove existing preview
+            this.selectedButton = null;
+        }
+
+        // Remove preview block
         if (this.previewBlock) {
             this.previewBlock.destroy();
             this.previewBlock = null;
         }
 
-        // Create new preview block
-        this.recreatePreviewBlock();
-
-        console.log(`Selected block type: ${blockId}`);
+        console.log('Block type deselected');
     } private onPointerMove(event: FederatedPointerEvent): void {
         // Get the pointer position in the main container's coordinate space
         const localPosition = event.data.getLocalPosition(this.container);
@@ -376,16 +427,68 @@ export class ShipBuilder {
         // This takes into account the camera position and zoom level
         const worldX = (localPosition.x - this.camera.x) / this.camera.zoom;
         const worldY = (localPosition.y - this.camera.y) / this.camera.zoom;
-        const worldPosition = { x: worldX, y: worldY };
-
-        // Optionally snap to grid if enabled
-        const finalPos = this.options.snapToGrid ? this.snapToGrid(worldPosition) : worldPosition;
+        const worldPosition = { x: worldX, y: worldY };        // Optionally snap to grid if enabled
+        const definition = this.selectedBlockType ? BlockDefinitions.get(this.selectedBlockType) : undefined;
+        const finalPos = this.options.snapToGrid ? this.snapToGrid(worldPosition, definition) : worldPosition;
 
         if (this.previewBlock) {
             // Update the preview block's grid position and visual position
             this.previewBlock.setGridPosition(finalPos);
             this.previewBlock.container.x = finalPos.x;
-            this.previewBlock.container.y = finalPos.y;
+            this.previewBlock.container.y = finalPos.y;            // Check if the position would be valid and update preview appearance
+            const isValidPosition = this.isPositionValid(finalPos, definition);
+            const isWithinBounds = this.isPositionWithinBounds(finalPos, definition);
+            const isOccupied = this.isPositionOccupied(finalPos, definition);
+
+            // Update preview block opacity and indicator color based on validity
+            if (isValidPosition) {
+                this.previewBlock.container.alpha = 0.5;
+                // Update indicator color to green (valid)
+                const indicator = this.previewBlock.container.getChildAt(1); // Indicator is the second child
+                if (indicator instanceof Graphics) {
+                    const graphics = indicator as Graphics;
+                    graphics.clear();
+                    graphics.lineStyle(2, 0x33FF33, 0.8); // Green for valid
+
+                    if (definition?.shape === 'circle') {
+                        const radius = definition.width / 2;
+                        this.drawDashedCircle(graphics, 0, 0, radius + 2);
+                    } else if (definition) {
+                        const width = definition.width;
+                        const height = definition.height;
+                        this.drawDashedRect(graphics, -width / 2 - 2, -height / 2 - 2, width + 4, height + 4);
+                    }
+                }
+            } else {
+                this.previewBlock.container.alpha = 0.3;
+                // Update indicator color based on the type of invalidity
+                const indicator = this.previewBlock.container.getChildAt(1);
+                if (indicator instanceof Graphics) {
+                    const graphics = indicator as Graphics;
+                    graphics.clear();
+
+                    // Different colors for different types of invalid placement
+                    let indicatorColor: number;
+                    if (!isWithinBounds) {
+                        indicatorColor = 0xFF6600; // Orange for out of bounds
+                    } else if (isOccupied) {
+                        indicatorColor = 0xFF3333; // Red for occupied
+                    } else {
+                        indicatorColor = 0xFF3333; // Default red for other issues
+                    }
+
+                    graphics.lineStyle(2, indicatorColor, 0.8);
+
+                    if (definition?.shape === 'circle') {
+                        const radius = definition.width / 2;
+                        this.drawDashedCircle(graphics, 0, 0, radius + 2);
+                    } else if (definition) {
+                        const width = definition.width;
+                        const height = definition.height;
+                        this.drawDashedRect(graphics, -width / 2 - 2, -height / 2 - 2, width + 4, height + 4);
+                    }
+                }
+            }
 
             // Debug logging (uncomment if needed for troubleshooting)
             // console.log('Mouse tracking:', {
@@ -405,20 +508,49 @@ export class ShipBuilder {
             return;
         }
 
+        // Right-click to deselect block type
+        if (event.data.button === 2 && this.selectedBlockType) {
+            this.deselectBlockType();
+            return;
+        }
+
         // Handle block placement
-        if (!this.previewBlock || !this.isBuilding || !this.selectedBlockType) return;
+        if (!this.previewBlock || !this.isBuilding || !this.selectedBlockType) {
+            // If no block selected, clicking anywhere (except UI) should deselect
+            if (this.selectedBlockType && event.data.button === 0) {
+                // Check if click is not on any UI element by checking world coordinates
+                const worldX = (localPosition.x - this.camera.x) / this.camera.zoom;
+                const worldY = (localPosition.y - this.camera.y) / this.camera.zoom;
+
+                // If clicking in the building area (not on UI), deselect
+                const buildAreaHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
+                const buildAreaHalfHeight = (this.options.gridHeight * this.options.gridSize) / 2;
+
+                if (Math.abs(worldX) <= buildAreaHalfWidth && Math.abs(worldY) <= buildAreaHalfHeight) {
+                    this.deselectBlockType();
+                }
+            }
+            return;
+        }
 
         // Convert container coordinates to world coordinates
         const worldX = (localPosition.x - this.camera.x) / this.camera.zoom;
-        const worldY = (localPosition.y - this.camera.y) / this.camera.zoom;
+        const worldY = (localPosition.y - this.camera.y) / this.camera.zoom; const worldPosition = { x: worldX, y: worldY };        // Apply grid snapping if enabled (even when grid is invisible)
+        const blockDefinition = BlockDefinitions.get(this.selectedBlockType)!;
+        const finalPos = this.options.snapToGrid ? this.snapToGrid(worldPosition, blockDefinition) : worldPosition;
 
-        const worldPosition = { x: worldX, y: worldY };
+        // Check if position is valid (within bounds and not occupied)
+        if (!this.isPositionValid(finalPos, blockDefinition)) {
+            // Check specifically what's wrong to provide better feedback
+            const withinBounds = this.isPositionWithinBounds(finalPos, blockDefinition);
+            const isOccupied = this.isPositionOccupied(finalPos, blockDefinition);
 
-        // Apply grid snapping if enabled (even when grid is invisible)
-        const finalPos = this.options.snapToGrid ? this.snapToGrid(worldPosition) : worldPosition;
-
-        // Check if position is valid (not occupied)
-        if (this.isPositionOccupied(finalPos)) {
+            if (!withinBounds) {
+                console.log(`Cannot place block at (${finalPos.x}, ${finalPos.y}) - outside building area`);
+            } else if (isOccupied) {
+                console.log(`Cannot place block at (${finalPos.x}, ${finalPos.y}) - position occupied`);
+            }
+            // Visual feedback could be added here (red flash, etc.)
             return;
         }
 
@@ -480,8 +612,14 @@ export class ShipBuilder {
                 }
 
                 this.previewBlock.container.addChild(indicator);
+
+                // Start the preview block off-screen to avoid showing it at center
+                // It will be positioned properly when the mouse moves
+                this.previewBlock.container.x = -10000;
+                this.previewBlock.container.y = -10000;
+
                 this.worldContainer.addChild(this.previewBlock.container);
-                console.log(`Preview block recreated for type: ${this.selectedBlockType} (gridless mode active)`);
+                console.log(`Preview block recreated for type: ${this.selectedBlockType} (positioned off-screen until mouse moves)`);
             }
         }
     }
@@ -570,9 +708,7 @@ export class ShipBuilder {
         const zoomDelta = -event.deltaY * this.zoomSpeed * 0.01;
 
         this.zoomCamera(zoomDelta, localPosition.x, localPosition.y);
-    }
-
-    private setupKeyboardControls(): void {
+    } private setupKeyboardControls(): void {
         // Add keyboard event listeners for camera controls
         document.addEventListener('keydown', (event) => {
             if (event.target !== document.body) return; // Only when not typing in inputs
@@ -580,6 +716,11 @@ export class ShipBuilder {
             const panDistance = 20 / this.camera.zoom;
 
             switch (event.code) {
+                case 'Escape':
+                    // Deselect current block type
+                    this.deselectBlockType();
+                    event.preventDefault();
+                    break;
                 case 'ArrowUp':
                 case 'KeyW':
                     if (event.shiftKey) {
@@ -630,50 +771,296 @@ export class ShipBuilder {
                     break;
             }
         });
-    } private snapToGrid(position: Vector): Vector {
+    }
+
+    private snapToGrid(position: Vector, blockDefinition?: any): Vector {
         if (!this.options.snapToGrid) return position;
 
         const { gridSize } = this.options;
-        // Snap to grid even when grid isn't visible
+
+        // If we have a block definition, we can do smarter snapping
+        if (blockDefinition) {
+            // For blocks larger than the base grid size, ensure they align properly
+            const blockWidth = blockDefinition.width || gridSize;
+            const blockHeight = blockDefinition.height || gridSize;
+
+            // Calculate how many grid units this block occupies
+            const gridUnitsX = blockWidth / gridSize;
+            const gridUnitsY = blockHeight / gridSize;
+
+            // For blocks that span multiple grid units, adjust snapping
+            // to ensure they align with the grid boundaries properly
+            let snappedX = Math.round(position.x / gridSize) * gridSize;
+            let snappedY = Math.round(position.y / gridSize) * gridSize;
+
+            // For multi-unit blocks, ensure they snap to positions where
+            // they will align with the grid properly
+            if (gridUnitsX > 1) {
+                // Ensure the block's center aligns with grid intersections
+                const offsetX = ((gridUnitsX - 1) * gridSize) / 2;
+                snappedX = Math.round((position.x - offsetX) / gridSize) * gridSize + offsetX;
+            }
+
+            if (gridUnitsY > 1) {
+                // Ensure the block's center aligns with grid intersections
+                const offsetY = ((gridUnitsY - 1) * gridSize) / 2;
+                snappedY = Math.round((position.y - offsetY) / gridSize) * gridSize + offsetY;
+            }
+
+            return { x: snappedX, y: snappedY };
+        }
+
+        // Default snapping for blocks without definition
         return {
             x: Math.round(position.x / gridSize) * gridSize,
             y: Math.round(position.y / gridSize) * gridSize
         };
+    } private isPositionWithinBounds(position: Vector, blockDefinition?: any): boolean {
+        const testWidth = blockDefinition?.width || this.options.gridSize;
+        const testHeight = blockDefinition?.height || this.options.gridSize;
+
+        // Calculate the building area boundaries
+        const buildAreaHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
+        const buildAreaHalfHeight = (this.options.gridHeight * this.options.gridSize) / 2;
+
+        // Calculate the bounding box for the block being tested
+        const testLeft = position.x - testWidth / 2;
+        const testRight = position.x + testWidth / 2;
+        const testTop = position.y - testHeight / 2;
+        const testBottom = position.y + testHeight / 2;
+
+        // Check if the entire block would fit within the building area
+        const withinHorizontalBounds = testLeft >= -buildAreaHalfWidth && testRight <= buildAreaHalfWidth;
+        const withinVerticalBounds = testTop >= -buildAreaHalfHeight && testBottom <= buildAreaHalfHeight;
+
+        return withinHorizontalBounds && withinVerticalBounds;
     }
 
-    private isPositionOccupied(position: Vector): boolean {
+    private isPositionOccupied(position: Vector, blockDefinition?: any): boolean {
+        const testWidth = blockDefinition?.width || this.options.gridSize;
+        const testHeight = blockDefinition?.height || this.options.gridSize;
+
         for (const block of this.ship.blocks.values()) {
             const blockPos = block.gridPosition;
-            if (Math.abs(blockPos.x - position.x) < 1 && Math.abs(blockPos.y - position.y) < 1) {
+            const existingDef = block.definition;
+            const existingWidth = existingDef.width;
+            const existingHeight = existingDef.height;
+
+            // Calculate the bounding boxes for both blocks
+            const testLeft = position.x - testWidth / 2;
+            const testRight = position.x + testWidth / 2;
+            const testTop = position.y - testHeight / 2;
+            const testBottom = position.y + testHeight / 2;
+
+            const existingLeft = blockPos.x - existingWidth / 2;
+            const existingRight = blockPos.x + existingWidth / 2;
+            const existingTop = blockPos.y - existingHeight / 2;
+            const existingBottom = blockPos.y + existingHeight / 2;
+
+            // Check for overlap using AABB (Axis-Aligned Bounding Box) collision
+            const overlapping = !(testRight <= existingLeft ||
+                testLeft >= existingRight ||
+                testBottom <= existingTop ||
+                testTop >= existingBottom);
+
+            if (overlapping) {
                 return true;
             }
         }
         return false;
     }
 
+    private isPositionValid(position: Vector, blockDefinition?: any): boolean {
+        // A position is valid if it's both within bounds AND not occupied
+        return this.isPositionWithinBounds(position, blockDefinition) &&
+            !this.isPositionOccupied(position, blockDefinition);
+    }
+
     private autoConnect(newBlock: Block): void {
-        const connectionRange = this.options.gridSize * 1.5;
+        // Use a more precise connection range based on grid size and block sizes
+        const gridSize = this.options.gridSize;
+        console.log(`🔗 AUTO-CONNECT: Attempting to connect new block at (${newBlock.gridPosition.x}, ${newBlock.gridPosition.y})`);
+
+        let connectionsAttempted = 0;
+        let connectionsSuccessful = 0;
 
         for (const existingBlock of this.ship.blocks.values()) {
             if (existingBlock === newBlock) continue;
 
-            const distance = Vector.magnitude(Vector.sub(newBlock.gridPosition, existingBlock.gridPosition));
-            if (distance <= connectionRange) {
-                // Try to find compatible connection points
+            const newBlockPos = newBlock.gridPosition;
+            const existingBlockPos = existingBlock.gridPosition;
+
+            // Calculate the edges of both blocks
+            const newBlockDef = newBlock.definition;
+            const existingBlockDef = existingBlock.definition;
+
+            const newHalfWidth = newBlockDef.width / 2;
+            const newHalfHeight = newBlockDef.height / 2;
+            const existingHalfWidth = existingBlockDef.width / 2;
+            const existingHalfHeight = existingBlockDef.height / 2;
+
+            // Check if blocks are adjacent (touching edges)
+            const deltaX = Math.abs(newBlockPos.x - existingBlockPos.x);
+            const deltaY = Math.abs(newBlockPos.y - existingBlockPos.y);
+
+            // More lenient adjacency check - blocks are adjacent if they're within reasonable range
+            const expectedGapX = newHalfWidth + existingHalfWidth;
+            const expectedGapY = newHalfHeight + existingHalfHeight;
+
+            // Allow for small gaps/overlaps due to positioning precision
+            const tolerance = 2; // pixels
+
+            const touchingHorizontally = (
+                Math.abs(deltaX - expectedGapX) <= tolerance &&
+                deltaY <= Math.max(newHalfHeight, existingHalfHeight) + tolerance
+            );
+
+            const touchingVertically = (
+                Math.abs(deltaY - expectedGapY) <= tolerance &&
+                deltaX <= Math.max(newHalfWidth, existingHalfWidth) + tolerance
+            );
+
+            console.log(`  Checking vs block at (${existingBlockPos.x}, ${existingBlockPos.y}): deltaX=${deltaX.toFixed(1)}, deltaY=${deltaY.toFixed(1)}, H=${touchingHorizontally}, V=${touchingVertically}`);
+
+            if (touchingHorizontally || touchingVertically) {
+                connectionsAttempted++;
+
+                // Find the best connection points on each block
                 const newBlockPoints = newBlock.getAvailableConnectionPoints();
                 const existingBlockPoints = existingBlock.getAvailableConnectionPoints();
 
+                console.log(`    Adjacent! Available points: new=${newBlockPoints.length}, existing=${existingBlockPoints.length}`);
+
                 if (newBlockPoints.length > 0 && existingBlockPoints.length > 0) {
-                    // Connect using first available points
-                    this.ship.connectBlocks(
-                        newBlock,
-                        existingBlock,
-                        newBlockPoints[0],
-                        existingBlockPoints[0]
-                    );
+                    // Find the closest connection points
+                    let bestDistance = Infinity;
+                    let bestNewPoint = 0;
+                    let bestExistingPoint = 0;
+
+                    for (let i = 0; i < newBlockPoints.length; i++) {
+                        for (let j = 0; j < existingBlockPoints.length; j++) {
+                            const newPoint = newBlockDef.connectionPoints[newBlockPoints[i]];
+                            const existingPoint = existingBlockDef.connectionPoints[existingBlockPoints[j]];
+
+                            // Calculate world positions of connection points
+                            const newWorldPoint = {
+                                x: newBlockPos.x + newPoint.x,
+                                y: newBlockPos.y + newPoint.y
+                            };
+                            const existingWorldPoint = {
+                                x: existingBlockPos.x + existingPoint.x,
+                                y: existingBlockPos.y + existingPoint.y
+                            };
+
+                            const distance = Vector.magnitude(Vector.sub(newWorldPoint, existingWorldPoint));
+
+                            if (distance < bestDistance) {
+                                bestDistance = distance;
+                                bestNewPoint = newBlockPoints[i];
+                                bestExistingPoint = existingBlockPoints[j];
+                            }
+                        }
+                    }
+
+                    // More lenient connection distance - allow up to 1 grid unit
+                    const connectionTolerance = gridSize;
+                    if (bestDistance <= connectionTolerance) {
+                        const connectionSuccess = this.ship.connectBlocks(
+                            newBlock,
+                            existingBlock,
+                            bestNewPoint,
+                            bestExistingPoint
+                        );
+
+                        if (connectionSuccess) {
+                            connectionsSuccessful++;
+                            console.log(`    ✅ Connected! Distance: ${bestDistance.toFixed(1)}px`);
+                        } else {
+                            console.log(`    ❌ Connection failed despite valid distance: ${bestDistance.toFixed(1)}px`);
+                        }
+                    } else {
+                        console.log(`    ⚠️ Points too far: ${bestDistance.toFixed(1)}px > ${connectionTolerance}px`);
+                    }
+                } else {
+                    console.log(`    ❌ No available connection points`);
                 }
             }
         }
+
+        console.log(`🔗 AUTO-CONNECT SUMMARY: ${connectionsSuccessful}/${connectionsAttempted} connections successful`);
+
+        // If no connections were made, log a warning
+        if (connectionsAttempted > 0 && connectionsSuccessful === 0) {
+            console.warn('⚠️ Block placed adjacent to others but no connections established!');
+        }
+    }
+
+    public repairConnections(): void {
+        console.log('🔧 REPAIRING CONNECTIONS: Attempting to connect isolated blocks...');
+
+        const validation = this.ship.validateStructuralIntegrity();
+        if (validation.isValid) {
+            console.log('✅ Ship structure is already valid - no repairs needed');
+            return;
+        }
+
+        // Get the main connected structure
+        const firstBlock = Array.from(this.ship.blocks.values())[0];
+        const connectedBlocks = this.ship.getConnectedBlocks(firstBlock);
+        const isolatedBlocks = Array.from(this.ship.blocks.values()).filter(block => !connectedBlocks.has(block));
+
+        console.log(`Found ${isolatedBlocks.length} isolated blocks to reconnect`);
+
+        let repairsAttempted = 0;
+        let repairsSuccessful = 0;
+
+        // Try to connect each isolated block to the main structure
+        for (const isolatedBlock of isolatedBlocks) {
+            let connected = false;
+
+            // Try to connect to any block in the main structure
+            for (const mainBlock of connectedBlocks) {
+                if (connected) break;
+
+                const isolatedPos = isolatedBlock.gridPosition;
+                const mainPos = mainBlock.gridPosition;
+
+                // Check if blocks are close enough to connect
+                const distance = Vector.magnitude(Vector.sub(isolatedPos, mainPos));
+                const maxConnectionDistance = this.options.gridSize * 2; // Allow up to 2 grid units
+
+                if (distance <= maxConnectionDistance) {
+                    repairsAttempted++;
+
+                    // Find best connection points
+                    const isolatedPoints = isolatedBlock.getAvailableConnectionPoints();
+                    const mainPoints = mainBlock.getAvailableConnectionPoints();
+
+                    if (isolatedPoints.length > 0 && mainPoints.length > 0) {
+                        // Try first available connection points
+                        const success = this.ship.connectBlocks(
+                            isolatedBlock,
+                            mainBlock,
+                            isolatedPoints[0],
+                            mainPoints[0]
+                        );
+
+                        if (success) {
+                            connected = true;
+                            repairsSuccessful++;
+                            console.log(`  ✅ Connected isolated block to main structure`);
+                        }
+                    }
+                }
+            }
+
+            if (!connected) {
+                console.log(`  ❌ Could not connect isolated block at (${isolatedBlock.gridPosition.x}, ${isolatedBlock.gridPosition.y})`);
+            }
+        }
+
+        console.log(`🔧 REPAIR SUMMARY: ${repairsSuccessful}/${repairsAttempted} repairs successful`);
+        this.updateStats();
     }
 
     private updateStats(): void {
@@ -687,48 +1074,36 @@ export class ShipBuilder {
         statsString += `Total Armor: ${stats.totalArmor}\n`;
         statsString += `Weapons: ${stats.totalWeapons}\n\n`;
 
+        // Enhanced validation output with debugging
         if (!validation.isValid) {
             statsString += 'Issues:\n';
             validation.issues.forEach(issue => {
                 statsString += `• ${issue}\n`;
             });
+
+            // Debug connection information
+            console.log('🔍 DEBUGGING STRUCTURAL INTEGRITY:');
+            console.log(`Total blocks: ${this.ship.blocks.size}`);
+
+            if (this.ship.blocks.size > 0) {
+                const firstBlock = Array.from(this.ship.blocks.values())[0];
+                const connectedBlocks = this.ship.getConnectedBlocks(firstBlock);
+                console.log(`Connected blocks from first block: ${connectedBlocks.size}`);
+                console.log(`Disconnected blocks: ${this.ship.blocks.size - connectedBlocks.size}`);
+
+                // List all blocks and their connections
+                for (const [id, block] of this.ship.blocks) {
+                    const connectionCount = block.getConnectedBlocks().length;
+                    const isConnected = connectedBlocks.has(block);
+                    console.log(`Block ${id.slice(0, 8)}: ${connectionCount} connections, ${isConnected ? 'CONNECTED' : 'ISOLATED'}`);
+                }
+            }
         } else {
             statsString += 'Ship is valid!';
         }
 
         this.statsText.text = statsString;
-    }
-
-    private toggleBuildMode(): void {
-        this.isBuilding = !this.isBuilding;
-
-        if (this.isBuilding) {
-            // Switch to build mode
-            const buildText = this.buildButton.children[0] as Text;
-            buildText.text = 'Build Mode';
-            this.buildButton.clear();
-            this.buildButton.beginFill(0x00AA00, 0.8);
-            this.buildButton.lineStyle(2, 0x00FF00);
-            this.buildButton.drawRect(0, 0, 120, 40);
-            this.buildButton.endFill();
-        } else {
-            // Switch to test mode
-            const buildText = this.buildButton.children[0] as Text;
-            buildText.text = 'Edit Mode';
-            this.buildButton.clear();
-            this.buildButton.beginFill(0xAA0000, 0.8);
-            this.buildButton.lineStyle(2, 0xFF0000);
-            this.buildButton.drawRect(0, 0, 120, 40);
-            this.buildButton.endFill();
-        }
-
-        // Hide/show preview block
-        if (this.previewBlock) {
-            this.previewBlock.container.visible = this.isBuilding;
-        }
-    }
-
-    private testShip(): void {
+    } private testShip(): void {
         const validation = this.ship.validateStructuralIntegrity();
 
         if (!validation.isValid) {
@@ -744,6 +1119,63 @@ export class ShipBuilder {
 
         console.log('Ship test mode activated!');
         console.log('Ship stats:', this.ship.calculateStats());
+    }    /**
+     * Test method to verify the enhanced connection system is working
+     */
+    public testConnectionSystem(): void {
+        console.log('🧪 TESTING CONNECTION SYSTEM:');
+
+        // Clear existing ship
+        this.clearShip();
+
+        // Create test blocks in a simple pattern
+        console.log('  Creating test blocks...');
+
+        // Helper function to place a block programmatically
+        const placeTestBlock = (x: number, y: number, blockType: string) => {
+            const definition = BlockDefinitions.get(blockType)!;
+            const properties = BlockDefinitions.getDefaultProperties(blockType);
+            const newBlock = new Block(definition, properties, { x, y });
+
+            this.ship.addBlock(newBlock, { x, y });
+            newBlock.container.x = x;
+            newBlock.container.y = y;
+            this.ship.container.addChild(newBlock.container);
+
+            // Try to auto-connect to nearby blocks
+            this.autoConnect(newBlock);
+        };
+
+        // Place center block
+        placeTestBlock(0, 0, 'hull_basic');
+        console.log('  Placed center block');
+
+        // Place adjacent blocks that should auto-connect
+        placeTestBlock(32, 0, 'hull_basic');  // Right
+        console.log('  Placed right block');
+
+        placeTestBlock(-32, 0, 'hull_basic'); // Left
+        console.log('  Placed left block');
+
+        placeTestBlock(0, -32, 'weapon_laser'); // Top
+        console.log('  Placed top weapon');
+
+        placeTestBlock(0, 32, 'engine_basic'); // Bottom
+        console.log('  Placed bottom engine');
+
+        // Check final structural integrity
+        const validation = this.ship.validateStructuralIntegrity();
+        console.log('🧪 TEST RESULTS:');
+        console.log(`  Ship is valid: ${validation.isValid}`);
+        console.log(`  Total blocks: ${this.ship.blocks.size}`);
+
+        if (!validation.isValid) {
+            console.log('  Issues found:', validation.issues);
+            console.log('  Attempting auto-repair...');
+            this.repairConnections();
+        } else {
+            console.log('  ✅ All blocks properly connected!');
+        }
     }
 
     public getShip(): Ship {
@@ -786,11 +1218,10 @@ export class ShipBuilder {
         }
         this.container.destroy({ children: true });
     } private setupInstructions(): void {
-        const gridHalfHeight = (this.options.gridHeight * this.options.gridSize) / 2;
-
-        // Position instructions at the bottom center
+        // Position instructions at the bottom using screen coordinates
+        // For 1600x1000 screen: bottom edge is at 500
         this.instructionsContainer.x = -this.INSTRUCTIONS_WIDTH / 2;
-        this.instructionsContainer.y = gridHalfHeight + 20;        // Instructions background with border
+        this.instructionsContainer.y = 480 - this.INSTRUCTIONS_HEIGHT; // Near bottom edge// Instructions background with border
         const instructionsBg = new Graphics();
         instructionsBg.beginFill(0x1a1a1a, 0.95);
         instructionsBg.lineStyle(3, 0x00AAFF, 0.8);
@@ -814,10 +1245,16 @@ export class ShipBuilder {
         const instructions = [
             '🎯 Click blocks in LEFT PALETTE to select them',
             '📍 Click in BUILDING AREA to place selected blocks',
+            '❌ Press ESC or right-click to deselect block type',
             '🔗 Blocks auto-connect when placed adjacent',
             '🔨 BUILD MODE: Construct and modify your ship',
             '🚀 TEST MODE: Pilot ship with WASD keys',
             '📊 View ship stats in the RIGHT PANEL',
+            '',
+            '🎨 Block Preview Colors:',
+            '   • 🟢 Green: Valid placement position',
+            '   • 🟠 Orange: Outside building area',
+            '   • 🔴 Red: Position occupied by another block',
             '',
             '🎮 Camera Controls:',
             '   • Middle-click & drag to pan camera',
@@ -833,41 +1270,60 @@ export class ShipBuilder {
             lineHeight: 18,
             wordWrap: true,
             wordWrapWidth: this.INSTRUCTIONS_WIDTH - 20
-        });
-        instructionText.x = 10;
+        }); instructionText.x = 10;
         instructionText.y = 35;
         this.instructionsContainer.addChild(instructionText);
     }
 
     public resize(screenWidth: number, screenHeight: number): void {
+        // Update container size
+        this.container.width = screenWidth;
+        this.container.height = screenHeight;
+
+        // Calculate half dimensions for positioning
+        const halfWidth = screenWidth / 2;
+        const halfHeight = screenHeight / 2;
+
         // Update grid size if screen is too small
         const minScreenWidth = this.PALETTE_WIDTH + (this.options.gridWidth * this.options.gridSize) + this.STATS_WIDTH + 80;
         const minScreenHeight = Math.max(this.PALETTE_HEIGHT, this.options.gridHeight * this.options.gridSize) + this.INSTRUCTIONS_HEIGHT + 40;
 
-        // Reposition elements based on new screen size
-        const gridHalfWidth = (this.options.gridWidth * this.options.gridSize) / 2;
-        const gridHalfHeight = (this.options.gridHeight * this.options.gridSize) / 2;
+        // Reposition elements based on new screen size using fixed coordinates
+        // Reposition palette (left side)
+        this.blockPalette.x = -halfWidth + 10;
+        this.blockPalette.y = -halfHeight + 10;        // Reposition stats (right side)
+        this.statsContainer.x = halfWidth - this.STATS_WIDTH - 10;
+        this.statsContainer.y = -halfHeight + 10;
 
-        // Reposition palette
-        this.blockPalette.x = -gridHalfWidth - this.PALETTE_WIDTH - 20;
-        this.blockPalette.y = -this.PALETTE_HEIGHT / 2;
-
-        // Reposition stats
-        this.statsContainer.x = gridHalfWidth + 20;
-        this.statsContainer.y = -this.STATS_HEIGHT / 2;
-
-        // Reposition buttons
-        const buttonX = gridHalfWidth + 20;
-        this.buildButton.x = buttonX;
-        this.buildButton.y = this.STATS_HEIGHT / 2 + 30;
+        // Reposition buttons (right side, below stats)
+        const buttonX = halfWidth - this.BUTTON_WIDTH - 10;
+        this.clearButton.x = buttonX;
+        this.clearButton.y = -halfHeight + this.STATS_HEIGHT + 30;
         this.testButton.x = buttonX;
-        this.testButton.y = this.STATS_HEIGHT / 2 + 80;
+        this.testButton.y = -halfHeight + this.STATS_HEIGHT + 80;
 
-        // Reposition instructions
+        // Update button text positions (if they exist)
+        for (let i = 0; i < this.container.children.length; i++) {
+            const child = this.container.children[i]; if (child instanceof Text) {
+                // Reposition text relative to buttons
+                if (child.text === 'Clear Ship') {
+                    child.x = this.clearButton.x + (this.BUTTON_WIDTH - child.width) / 2;
+                    child.y = this.clearButton.y + (this.BUTTON_HEIGHT - child.height) / 2;
+                } else if (child.text === 'Test Ship') {
+                    child.x = this.testButton.x + (this.BUTTON_WIDTH - child.width) / 2;
+                    child.y = this.testButton.y + (this.BUTTON_HEIGHT - child.height) / 2;
+                }
+            }
+        }
+
+        // Reposition instructions (bottom center)
         this.instructionsContainer.x = -this.INSTRUCTIONS_WIDTH / 2;
-        this.instructionsContainer.y = gridHalfHeight + 20;
+        this.instructionsContainer.y = halfHeight - this.INSTRUCTIONS_HEIGHT - 10;
 
         console.log(`UI resized for screen: ${screenWidth}x${screenHeight}, minimum required: ${minScreenWidth}x${minScreenHeight}`);
+        console.log(`Block Palette positioned at: (${this.blockPalette.x}, ${this.blockPalette.y})`);
+        console.log(`Stats Container positioned at: (${this.statsContainer.x}, ${this.statsContainer.y})`);
+        console.log(`Instructions positioned at: (${this.instructionsContainer.x}, ${this.instructionsContainer.y})`);
     }
 
     // Camera system methods
@@ -895,14 +1351,14 @@ export class ShipBuilder {
         }
 
         this.updateCameraTransform();
-    }
-
-    private resetCamera(): void {
+    } private resetCamera(): void {
         this.camera.x = 0;
         this.camera.y = 0;
         this.camera.zoom = 1;
         this.updateCameraTransform();
-    } public worldToScreen(worldPos: { x: number; y: number }): { x: number; y: number } {
+    }
+
+    public worldToScreen(worldPos: { x: number; y: number }): { x: number; y: number } {
         return {
             x: worldPos.x * this.camera.zoom + this.camera.x,
             y: worldPos.y * this.camera.zoom + this.camera.y
@@ -1001,14 +1457,30 @@ export class ShipBuilder {
 
         // Add a very subtle fill to help visualize the placement area
         areaGraphics.beginFill(0x3366CC, 0.03);
-        areaGraphics.drawRect(startX, startY, areaWidth, areaHeight);
-        areaGraphics.endFill();
-
-        // Ensure the area graphics are not interactive
-        areaGraphics.interactive = false;
-        areaGraphics.interactiveChildren = false;
+        areaGraphics.drawRect(startX, startY, areaWidth, areaHeight); areaGraphics.endFill();
 
         // Add to world container
         this.worldContainer.addChild(areaGraphics);
+    }    /**
+     * Debug method to visualize UI bounds and help with positioning
+     * @note Called conditionally when enableDebugVisualization option is true
+     */
+    private addDebugVisualization(): void {
+        // Create debug graphics to show screen bounds
+        const debugGraphics = new Graphics();
+        debugGraphics.lineStyle(2, 0xFF0000, 0.5);
+
+        // Draw screen boundaries (for 1600x1000 centered at origin)
+        debugGraphics.drawRect(-800, -500, 1600, 1000);
+
+        // Draw center crosshairs
+        debugGraphics.moveTo(-50, 0);
+        debugGraphics.lineTo(50, 0);
+        debugGraphics.moveTo(0, -50);
+        debugGraphics.lineTo(0, 50);
+
+        this.container.addChild(debugGraphics);
+
+        console.log('🔍 Debug visualization added - red border shows screen bounds');
     }
 }

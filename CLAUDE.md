@@ -49,6 +49,30 @@ CLI issues were caused by **shell syntax mismatch** - mixing bash (`&&`) with Po
 ---
 
 ### ⚡ PowerShell Command Guidelines for Claude
+
+**IMPORTANT: Avoid Background Processes for Simple Commands**
+- ❌ **DON'T**: Use `isBackground=true` for build/test/compile commands
+- ✅ **DO**: Use `isBackground=false` for commands like `npm run build`, `npm test`, etc.
+- ✅ **ONLY USE BACKGROUND**: For long-running servers (`npm run dev`, watch mode)
+- 📝 **REASON**: Background processes make it impossible to see command output and debug issues
+
+**Example - Correct Usage:**
+```typescript
+// ✅ CORRECT - Simple build command
+run_in_terminal({
+  command: "npm run build",
+  explanation: "Building the project",
+  isBackground: false  // Can see output immediately
+})
+
+// ✅ CORRECT - Long-running server
+run_in_terminal({
+  command: "npm run dev",
+  explanation: "Starting development server",
+  isBackground: true   // Runs in background, check with get_terminal_output
+})
+```
+
 **ALWAYS use PowerShell syntax when default shell is PowerShell:**
 
 - ✅ **CORRECT**: Use `;` to chain commands: `cd C:\path ; npm run dev`

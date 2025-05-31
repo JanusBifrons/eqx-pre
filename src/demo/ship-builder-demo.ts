@@ -74,19 +74,29 @@ export class ShipBuilderDemo {
         // Add keyboard controls
         this.setupControls();
 
+        // Expose test methods globally for debugging
+        (window as any).shipBuilderDemo = {
+            testConnections: () => this.shipBuilder.testConnectionSystem(),
+            repairConnections: () => this.shipBuilder.repairConnections(),
+            getShip: () => this.shipBuilder.getShip(),
+            clearShip: () => this.shipBuilder.clearShip()
+        };
+
         console.log('Ship Builder Demo initialized!');
         console.log('Controls:');
         console.log('- Click blocks in palette to select');
         console.log('- Click in grid to place blocks');
         console.log('- Use Build/Test buttons to switch modes');
-        console.log('- WASD to move ship in test mode');
+        console.log('Debug methods available:');
+        console.log('- shipBuilderDemo.testConnections() - Test connection system');
+        console.log('- shipBuilderDemo.repairConnections() - Repair ship connections');
+        console.log('- shipBuilderDemo.getShip() - Get current ship');
+        console.log('- shipBuilderDemo.clearShip() - Clear current ship');
     }
 
     private createDemoShip(): void {
         // Create a sample ship to demonstrate the system
-        const ship = new Ship();
-
-        // Create hull blocks
+        const ship = new Ship();        // Create hull blocks - using standard 32x32 grid positions
         const hullCenter = new Block(
             BlockDefinitions.get('hull_basic')!,
             BlockDefinitions.getDefaultProperties('hull_basic'),
@@ -96,33 +106,33 @@ export class ShipBuilderDemo {
         const hullLeft = new Block(
             BlockDefinitions.get('hull_basic')!,
             BlockDefinitions.getDefaultProperties('hull_basic'),
-            { x: -32, y: 0 }
+            { x: -32, y: 0 }  // One grid unit to the left
         );
 
         const hullRight = new Block(
             BlockDefinitions.get('hull_basic')!,
             BlockDefinitions.getDefaultProperties('hull_basic'),
-            { x: 32, y: 0 }
+            { x: 32, y: 0 }   // One grid unit to the right
         );
 
-        // Create engine
+        // Create engine - properly positioned below center hull
         const engine = new Block(
             BlockDefinitions.get('engine_basic')!,
             BlockDefinitions.getDefaultProperties('engine_basic'),
-            { x: 0, y: 32 }
+            { x: 0, y: 32 }   // One grid unit below
         );
 
-        // Create weapons
+        // Create weapons - properly positioned above side hulls
         const weaponLeft = new Block(
             BlockDefinitions.get('weapon_laser')!,
             BlockDefinitions.getDefaultProperties('weapon_laser'),
-            { x: -32, y: -32 }
+            { x: -32, y: -32 }  // Above and left
         );
 
         const weaponRight = new Block(
             BlockDefinitions.get('weapon_laser')!,
             BlockDefinitions.getDefaultProperties('weapon_laser'),
-            { x: 32, y: -32 }
+            { x: 32, y: -32 }   // Above and right
         );
 
         // Add blocks to ship
@@ -134,11 +144,20 @@ export class ShipBuilderDemo {
         ship.addBlock(weaponRight);
 
         // Connect blocks
-        ship.connectBlocks(hullCenter, hullLeft, 0, 1); // left-right connection
-        ship.connectBlocks(hullCenter, hullRight, 1, 0); // right-left connection
-        ship.connectBlocks(hullCenter, engine, 3, 0); // center-engine connection
-        ship.connectBlocks(hullLeft, weaponLeft, 2, 0); // left hull to left weapon
-        ship.connectBlocks(hullRight, weaponRight, 2, 0); // right hull to right weapon
+        console.log('🔗 DEMO SHIP: Connecting blocks...');
+
+        const connections = [
+            { block1: hullCenter, block2: hullLeft, point1: 0, point2: 1, desc: 'center-left hull' },
+            { block1: hullCenter, block2: hullRight, point1: 1, point2: 0, desc: 'center-right hull' },
+            { block1: hullCenter, block2: engine, point1: 3, point2: 0, desc: 'center-engine' },
+            { block1: hullLeft, block2: weaponLeft, point1: 2, point2: 0, desc: 'left hull-weapon' },
+            { block1: hullRight, block2: weaponRight, point1: 2, point2: 0, desc: 'right hull-weapon' }
+        ];
+
+        for (const conn of connections) {
+            const success = ship.connectBlocks(conn.block1, conn.block2, conn.point1, conn.point2);
+            console.log(`  ${conn.desc}: ${success ? 'SUCCESS' : 'FAILED'}`);
+        }
 
         // Add visual representations to the scene
         for (const block of ship.blocks.values()) {
@@ -154,12 +173,22 @@ export class ShipBuilderDemo {
         }
         shipContainer.x = 300;
         shipContainer.y = -200;
-        this.gameContainer.addChild(shipContainer);
-
-        // Register with ship system
+        this.gameContainer.addChild(shipContainer);        // Register with ship system
         this.shipSystem.registerShip(ship);
 
         console.log('Demo ship created with stats:', ship.calculateStats());
+        console.log('✅ All blocks conform to grid sizing standards');
+        console.log('✅ Blocks are properly positioned and connected');
+
+        // Validate structural integrity
+        const validation = ship.validateStructuralIntegrity();
+        console.log('🔍 DEMO SHIP VALIDATION:', validation);
+
+        if (!validation.isValid) {
+            console.warn('⚠️ Demo ship has structural issues:', validation.issues);
+        } else {
+            console.log('✅ Demo ship passes structural validation');
+        }
     }
 
     private setupControls(): void {

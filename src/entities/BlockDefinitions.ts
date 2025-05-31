@@ -1,10 +1,16 @@
 import { BlockDefinition, BlockType, BlockProperties } from '@/entities/Block';
 
 export class BlockDefinitions {
-    private static definitions = new Map<string, BlockDefinition>();
-
-    // Define standard sizes for blocks - all sizes must be multiples of BASE_UNIT
+    private static definitions = new Map<string, BlockDefinition>();    // Define standard sizes for blocks - all sizes must be multiples of BASE_UNIT
     public static readonly BASE_UNIT = 32; // Base unit size in pixels
+
+    /*
+     * BLOCK SIZING STANDARDS:
+     * - All block dimensions MUST be multiples of BASE_UNIT (32px)
+     * - Valid sizes: 32x32 (1x1), 64x32 (2x1), 32x64 (1x2), 64x64 (2x2), etc.
+     * - Connection points should align with grid boundaries (multiples of 16px from center)
+     * - This ensures proper snapping and alignment in the ship builder
+     */
 
     static {
         // Initialize default block definitions
@@ -47,27 +53,25 @@ export class BlockDefinitions {
                 { x: 16, y: 0 },    // Right
                 { x: 8, y: 8 }      // Corner
             ]
-        });
-
-        this.register('hull_heavy', {
+        }); this.register('hull_heavy', {
             type: BlockType.HULL,
-            width: 48,
-            height: 48,
+            width: 64,  // 2x2 grid units (BASE_UNIT * 2)
+            height: 64, // 2x2 grid units (BASE_UNIT * 2)
             mass: 25,
             maxHealth: 200,
             color: 0x707070,
             shape: 'rectangle',
             connectionPoints: [
-                { x: -24, y: 0 },   // Left
-                { x: 24, y: 0 },    // Right
-                { x: 0, y: -24 },   // Top
-                { x: 0, y: 24 },    // Bottom
-                { x: -12, y: -12 }, // Top-left
-                { x: 12, y: -12 },  // Top-right
-                { x: -12, y: 12 },  // Bottom-left
-                { x: 12, y: 12 }    // Bottom-right
+                { x: -32, y: 0 },   // Left edge
+                { x: 32, y: 0 },    // Right edge
+                { x: 0, y: -32 },   // Top edge
+                { x: 0, y: 32 },    // Bottom edge
+                { x: -16, y: -16 }, // Top-left quarter
+                { x: 16, y: -16 },  // Top-right quarter
+                { x: -16, y: 16 },  // Bottom-left quarter
+                { x: 16, y: 16 }    // Bottom-right quarter
             ]
-        });        // Engine blocks
+        });// Engine blocks
         this.register('engine_basic', {
             type: BlockType.ENGINE,
             width: 32,
@@ -180,27 +184,47 @@ export class BlockDefinitions {
                 { x: 0, y: -16 },   // Top
                 { x: 0, y: 16 }     // Bottom
             ]
-        });
-
-        this.register('utility_cargo', {
+        }); this.register('utility_cargo', {
             type: BlockType.UTILITY,
-            width: 64,
-            height: 32,
+            width: 64,  // 2x1 grid units (BASE_UNIT * 2 x BASE_UNIT * 1)
+            height: 32, // 2x1 grid units (BASE_UNIT * 2 x BASE_UNIT * 1)
             mass: 20,
             maxHealth: 70,
             color: 0xFFFF40,
             shape: 'rectangle',
             connectionPoints: [
-                { x: -32, y: 0 },   // Left
-                { x: 32, y: 0 },    // Right
-                { x: 0, y: -16 },   // Top
-                { x: 0, y: 16 }     // Bottom
+                { x: -32, y: 0 },   // Left edge
+                { x: 32, y: 0 },    // Right edge
+                { x: 0, y: -16 },   // Top center
+                { x: 0, y: 16 }     // Bottom center
             ]
         });
+    } public static register(id: string, definition: BlockDefinition): void {
+        // Validate that the block conforms to sizing standards
+        this.validateBlockDefinition(id, definition);
+        this.definitions.set(id, definition);
     }
 
-    public static register(id: string, definition: BlockDefinition): void {
-        this.definitions.set(id, definition);
+    private static validateBlockDefinition(id: string, definition: BlockDefinition): void {
+        const { width, height } = definition;
+
+        // Check if dimensions are multiples of BASE_UNIT
+        if (width % this.BASE_UNIT !== 0) {
+            console.warn(`Block '${id}' width (${width}) is not a multiple of BASE_UNIT (${this.BASE_UNIT})`);
+        }
+
+        if (height % this.BASE_UNIT !== 0) {
+            console.warn(`Block '${id}' height (${height}) is not a multiple of BASE_UNIT (${this.BASE_UNIT})`);
+        }
+
+        // Validate connection points align with grid boundaries
+        if (definition.connectionPoints) {
+            for (const point of definition.connectionPoints) {
+                if (Math.abs(point.x) % 16 !== 0 || Math.abs(point.y) % 16 !== 0) {
+                    console.warn(`Block '${id}' has connection point (${point.x}, ${point.y}) that doesn't align with 16px grid`);
+                }
+            }
+        }
     }
 
     public static get(id: string): BlockDefinition | undefined {
