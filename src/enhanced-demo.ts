@@ -142,18 +142,18 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     const centerY = window.innerHeight / 2;
 
     // Create ground platform using EntityManager.createEntity
-    const ground = entityManager.createEntity('ground');
+    const ground = entityManager.createEntity();
     ground.addComponent(new TransformComponent(ground.id, { x: centerX, y: window.innerHeight - 50 }));
 
     const groundGraphics = new Graphics();
     groundGraphics.beginFill(0x2c3e50);
-    groundGraphics.drawRect(-200, -25, 400, 50);
+    groundGraphics.drawRect(-2000, -250, 4000, 500); // Centered at (0, 0) for the entity
     groundGraphics.endFill();
     ground.addComponent(new RenderComponent(ground.id, groundGraphics));
     ground.addComponent(new RigidBodyComponent(
         ground.id,
         { x: centerX, y: window.innerHeight - 50 },
-        { type: 'rectangle', width: 400, height: 50 },
+        { type: 'rectangle', width: 4000, height: 500 },
         { isStatic: true, label: 'ground', friction: 0.7, restitution: 0.3 }
     ));
 
@@ -164,8 +164,8 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     }
 
     // Create dynamic boxes
-    for (let i = 0; i < 5; i++) {
-        const box = entityManager.createEntity(`box_${i}`);
+    for (let i = 0; i < 15; i++) {
+        const box = entityManager.createEntity();
         const x = centerX + (i - 2) * 80;
         const y = centerY - 200 - i * 100;
 
@@ -195,18 +195,20 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     }
 
     // Create dynamic circles
-    for (let i = 0; i < 3; i++) {
-        const circle = entityManager.createEntity(`circle_${i}`);
-        const x = centerX + 150 + i * 60;
-        const y = centerY - 300;
+    for (let i = 0; i < 10; i++) {
+        const circle = entityManager.createEntity();
+        const x = centerX + 150 + (i % 5) * 60;
+        const y = centerY - 300 - Math.floor(i / 5) * 60;
 
         circle.addComponent(new TransformComponent(circle.id, { x, y }));
 
         const circleGraphics = new Graphics();
-        circleGraphics.beginFill(0x3498db + i * 0x001100);
+        circleGraphics.beginFill(0x3498db + i * 0x111100);
         circleGraphics.drawCircle(0, 0, 25);
         circleGraphics.endFill();
-        circle.addComponent(new RenderComponent(circle.id, circleGraphics)); circle.addComponent(new RigidBodyComponent(
+        circle.addComponent(new RenderComponent(circle.id, circleGraphics));
+
+        circle.addComponent(new RigidBodyComponent(
             circle.id,
             { x, y },
             { type: 'circle', radius: 25 },
@@ -224,9 +226,52 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
             physicsSystem.addRigidBodyComponent(circleRigidBody);
         }
     }
+    // Create performance test objects - many small dynamic bodies
+    const testObjectCount = 50; // Adjust this number to stress test
+    for (let i = 0; i < testObjectCount; i++) {
+        const testObject = entityManager.createEntity();
+        const x = centerX + (Math.random() - 0.5) * 400;
+        const y = centerY - 400 - Math.random() * 200;
+        const size = 10 + Math.random() * 20;
 
+        testObject.addComponent(new TransformComponent(testObject.id, { x, y }));
+
+        const testGraphics = new Graphics();
+        const color = Math.random() * 0xffffff;
+        testGraphics.beginFill(color);
+
+        // Random shape for variety
+        if (Math.random() > 0.5) {
+            testGraphics.drawRect(-size / 2, -size / 2, size, size);
+        } else {
+            testGraphics.drawCircle(0, 0, size / 2);
+        }
+        testGraphics.endFill();
+        testObject.addComponent(new RenderComponent(testObject.id, testGraphics));
+
+        testObject.addComponent(new RigidBodyComponent(
+            testObject.id,
+            { x, y },
+            Math.random() > 0.5
+                ? { type: 'rectangle', width: size, height: size }
+                : { type: 'circle', radius: size / 2 },
+            {
+                density: 0.05,
+                friction: 0.4,
+                restitution: 0.7,
+                label: `perfTest_${i}`
+            }
+        ));
+
+        const testRigidBody = testObject.getComponent<RigidBodyComponent>('rigidbody');
+        if (testRigidBody) {
+            physicsSystem.addRigidBodyComponent(testRigidBody);
+        }
+    }
+
+    console.log(`🧪 Performance test: Created ${testObjectCount} additional physics objects`);
     // Create sensor (trigger) area
-    const sensor = entityManager.createEntity('sensor');
+    const sensor = entityManager.createEntity();
     sensor.addComponent(new TransformComponent(sensor.id, { x: centerX - 150, y: centerY }));
 
     const sensorGraphics = new Graphics();
@@ -252,7 +297,7 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     }
 
     // Create moving platform
-    const platform = entityManager.createEntity('platform');
+    const platform = entityManager.createEntity();
     platform.addComponent(new TransformComponent(platform.id, { x: centerX + 200, y: centerY + 100 }));
 
     const platformGraphics = new Graphics();

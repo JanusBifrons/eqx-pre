@@ -1,4 +1,4 @@
-import { Graphics, Sprite, Texture } from 'pixi.js';
+import { Graphics, Sprite, Texture, Container } from 'pixi.js';
 import { IComponent } from '@/core/types';
 
 export class RenderComponent implements IComponent {
@@ -41,6 +41,6 @@ export class RenderComponent implements IComponent {
 
     setZIndex(zIndex: number): void {
         this.zIndex = zIndex;
-        (this.displayObject as any).zIndex = zIndex;
+        (this.displayObject as Container).zIndex = zIndex;
     }
 }
