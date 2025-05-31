@@ -1,4 +1,4 @@
-import { runEnhancedDemo } from './enhanced-demo-fixed';
+import { runEnhancedDemo } from './enhanced-demo';
 
 async function main() {
     try {

@@ -12,11 +12,13 @@ export { EntityManager } from './entities/EntityManager';
 export { TransformComponent } from './components/TransformComponent';
 export { RenderComponent } from './components/RenderComponent';
 export { PhysicsComponent } from './components/PhysicsComponent';
+export { RigidBodyComponent } from './components/RigidBodyComponent';
 
 // System exports
 export { RenderSystem } from './systems/RenderSystem';
 export { PhysicsSystem } from './systems/PhysicsSystem';
 export { TransformSystem } from './systems/TransformSystem';
+export { CollisionManager } from './systems/CollisionManager';
 
 // Store exports
 export { useGameStore } from './store/gameStore';
