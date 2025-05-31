@@ -12,7 +12,7 @@ export interface IComponent {
 }
 
 export interface IEntity {
-    readonly id: string;
+    readonly id: string;  // UUID string
     readonly container: Container;
     addComponent<T extends IComponent>(component: T): void;
     removeComponent(type: string): void;

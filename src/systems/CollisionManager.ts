@@ -49,7 +49,9 @@ export class CollisionManager {
         this.setupCollisionEvents(engine);
         this.isInitialized = true;
         console.log('✅ CollisionManager initialized');
-    } private setupCollisionEvents(engine: any): void {
+    }
+
+    private setupCollisionEvents(engine: any): void {
         // Collision start events
         Events.on(engine, 'collisionStart', (event: any) => {
             this.handleCollisionEvent(event, 'collisionStart');
@@ -64,16 +66,18 @@ export class CollisionManager {
         Events.on(engine, 'collisionEnd', (event: any) => {
             this.handleCollisionEvent(event, 'collisionEnd');
         });
-    }
-
-    private handleCollisionEvent(event: any, type: CollisionEventType): void {
+    } private handleCollisionEvent(event: any, type: CollisionEventType): void {
         const pairs = event.pairs.map((pair: any) => this.createCollisionPair(pair));
+        console.log(`🎯 Processing ${type} event with ${event.pairs.length} pairs`);
 
         for (const pair of event.pairs) {
             const entityA = this.getEntityFromBody(pair.bodyA);
             const entityB = this.getEntityFromBody(pair.bodyB);
 
+            console.log(`🔍 Collision pair: entityA="${entityA}", entityB="${entityB}"`);
+
             if (entityA && entityB) {
+                console.log(`✅ Valid collision between ${entityA} and ${entityB}`);
                 const collisionEvent: CollisionEvent = {
                     entityA,
                     entityB,
@@ -95,7 +99,10 @@ export class CollisionManager {
                 }
 
                 // Trigger callbacks
+                console.log(`🔔 Triggering callbacks for ${type}`);
                 this.triggerCallbacks(collisionEvent, type);
+            } else {
+                console.log(`❌ Skipping collision - invalid entities: entityA="${entityA}", entityB="${entityB}"`);
             }
         }
     }
@@ -117,10 +124,7 @@ export class CollisionManager {
     private getEntityFromBody(body: Body): string | null {
         // Extract entity ID from body label
         const label = body.label;
-        if (label && label.startsWith('Entity_')) {
-            return label.replace('Entity_', '');
-        }
-        return null;
+        return label;
     }
 
     private getCollisionKey(entityA: string, entityB: string): string {
@@ -145,9 +149,13 @@ export class CollisionManager {
     }
 
     private triggerCallbacks(event: CollisionEvent, type: CollisionEventType): void {
+        console.log(`🔔 Triggering callbacks for ${type}: ${event.entityA} <-> ${event.entityB}`);
+        console.log(`📊 Registered callbacks - Global: ${this.globalCallbacks.length}, Type: ${this.collisionCallbacks.get(type)?.length || 0}`);
+
         // Global callbacks
         this.globalCallbacks.forEach(callback => {
             try {
+                console.log(`🌐 Calling global callback for ${type}`);
                 callback(event, type);
             } catch (error) {
                 console.error('Error in global collision callback:', error);
@@ -160,6 +168,7 @@ export class CollisionManager {
 
         [...entityACallbacks, ...entityBCallbacks].forEach(callback => {
             try {
+                console.log(`🎯 Calling entity callback for ${type}`);
                 callback(event, type);
             } catch (error) {
                 console.error('Error in entity collision callback:', error);
@@ -170,6 +179,7 @@ export class CollisionManager {
         const typeCallbacks = this.collisionCallbacks.get(type) || [];
         typeCallbacks.forEach(callback => {
             try {
+                console.log(`📝 Calling type-specific callback for ${type}`);
                 callback(event, type);
             } catch (error) {
                 console.error('Error in type collision callback:', error);

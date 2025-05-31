@@ -51,6 +51,10 @@ export class RigidBodyComponent implements IComponent {
         // Set the label for identification
         this.body.label = options.label || `Entity_${entityId}`;
 
+
+        console.log(`RigidBodyComponent created for entity ${entityId} with shape ${JSON.stringify(shape)}`);
+        console.log(`RigidBodyComponent created for entity ${entityId} with label ${this.body.label}`);
+
         // Apply additional options
         this.applyOptions(options);
     }

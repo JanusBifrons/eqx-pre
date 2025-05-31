@@ -1,15 +1,16 @@
 import { Container } from 'pixi.js';
 import { IEntity, IComponent } from '@/core/types';
+import { v4 as uuidv4 } from 'uuid';
 
 export class Entity implements IEntity {
     public readonly id: string;
     public readonly container: Container;
     private components = new Map<string, IComponent>();
 
-    constructor(id: string) {
-        this.id = id;
+    constructor() {
+        this.id = uuidv4(); // Generate a unique ID for the entity
         this.container = new Container();
-        this.container.name = `Entity_${id}`;
+        this.container.name = this.id; // Set a name for the PIXI container
     }
 
     addComponent<T extends IComponent>(component: T): void {

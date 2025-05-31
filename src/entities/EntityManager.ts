@@ -4,22 +4,15 @@ import { Application } from '@/core/Application';
 
 export class EntityManager {
     private entities = new Map<string, Entity>();
-    private nextEntityId = 0;
     private application: Application;
 
     constructor() {
         this.application = serviceContainer.get<Application>('application');
     }
 
-    createEntity(id?: string): Entity {
-        const entityId = id || `entity_${this.nextEntityId++}`;
-
-        if (this.entities.has(entityId)) {
-            throw new Error(`Entity with id '${entityId}' already exists`);
-        }
-
-        const entity = new Entity(entityId);
-        this.entities.set(entityId, entity);
+    createEntity(): Entity {
+        const entity = new Entity();
+        this.entities.set(entity.id, entity);
 
         // Add entity to the game container
         this.application.getGameContainer().addChild(entity.container);
@@ -55,14 +48,11 @@ export class EntityManager {
         return this.getAllEntities().filter(entity =>
             componentTypes.every(type => entity.hasComponent(type))
         );
-    }
-
-    clear(): void {
+    } clear(): void {
         for (const entity of this.entities.values()) {
             entity.destroy();
         }
         this.entities.clear();
-        this.nextEntityId = 0;
     }
 
     getEntityCount(): number {
