@@ -10,5 +10,20 @@
   ],
   "rules": {
     // You can add custom rules here
+    "@typescript-eslint/padding-line-between-statements": [
+      "error",
+      {
+      "blankLine": "always",
+      "prev": "function",
+      "next": "*"
+      },
+      {
+      "blankLine": "always",
+      "prev": "*",
+      "next": "function"
+      }
+    ],
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/semi": ["error", "always"]
   }
 }

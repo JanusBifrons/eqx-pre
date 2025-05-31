@@ -3,6 +3,9 @@ import { BlockDefinition, BlockType, BlockProperties } from '@/entities/Block';
 export class BlockDefinitions {
     private static definitions = new Map<string, BlockDefinition>();
 
+    // Define standard sizes for blocks - all sizes must be multiples of BASE_UNIT
+    public static readonly BASE_UNIT = 32; // Base unit size in pixels
+
     static {
         // Initialize default block definitions
         this.registerDefaults();
