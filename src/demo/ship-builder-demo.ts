@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js';
 import { Engine } from 'matter-js';
 import { Application } from '@/core/Application';
-import { ShipBuilder } from '@/ui/ShipBuilder';
+import { ShipBuilderRefactored as ShipBuilder } from '@/ui/ShipBuilderRefactored';
 import { ShipSystem } from '@/systems/ShipSystem';
 import { EntityManager } from '@/entities/EntityManager';
 import { Block } from '@/entities/Block';
@@ -284,18 +284,37 @@ export async function initializeShipBuilderDemo(): Promise<ShipBuilderDemo> {   
     document.body.style.backgroundColor = '#0a0a0a';
 
     const demo = new ShipBuilderDemo();
-    await demo.waitForInitialization();
-
-    // Add some helpful console methods for debugging
+    await demo.waitForInitialization();    // Add some helpful console methods for debugging
     (window as any).shipBuilderDemo = demo;
     (window as any).getShip = () => demo.getShipBuilder().getShip();
     (window as any).getShipStats = () => demo.getShipBuilder().getShip().calculateStats();
     (window as any).validateShip = () => demo.getShipBuilder().getShip().validateStructuralIntegrity();
+    (window as any).testRefactorComponents = () => {
+        console.log('🧪 TESTING REFACTORED COMPONENTS:');
+        const builder = demo.getShipBuilder();
+
+        try {
+            // Test component methods
+            builder.testConnectionSystem();
+            builder.repairConnections();
+            builder.clearShip();
+
+            // Test resize
+            builder.resize(1600, 1000);
+
+            console.log('✅ All component tests passed!');
+            return true;
+        } catch (error) {
+            console.error('❌ Component test failed:', error);
+            return false;
+        }
+    };
 
     console.log('Ship Builder Demo ready!');
     console.log('Access demo via window.shipBuilderDemo');
     console.log('Get current ship stats: getShipStats()');
     console.log('Validate current ship: validateShip()');
+    console.log('Test refactored components: testRefactorComponents()');
 
     return demo;
 }
