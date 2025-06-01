@@ -2,17 +2,17 @@
  * Validation script to test all components of the refactored ShipBuilder
  */
 import { Container } from 'pixi.js';
-import { ShipBuilderRefactored } from '@/ui/ShipBuilderRefactored';
+import { ShipBuilder } from '@/ui/ShipBuilder';
 import { Ship } from '@/entities/Ship';
 
 export class ShipBuilderValidation {
-    private shipBuilder: ShipBuilderRefactored;
+    private shipBuilder: ShipBuilder;
     private testContainer: Container;
     private validationResults: { [key: string]: boolean } = {};
 
     constructor() {
         this.testContainer = new Container();
-        this.shipBuilder = new ShipBuilderRefactored(this.testContainer, {
+        this.shipBuilder = new ShipBuilder(this.testContainer, {
             gridSize: 32,
             gridWidth: 25,
             gridHeight: 15,
@@ -62,7 +62,7 @@ export class ShipBuilderValidation {
     private testComponentInitialization(): boolean {
         try {
             // Test that ShipBuilder can be instantiated
-            const testBuilder = new ShipBuilderRefactored(new Container());
+            const testBuilder = new ShipBuilder(new Container());
 
             // Test that it has all required properties
             const hasShip = testBuilder.getShip() instanceof Ship;
@@ -146,7 +146,7 @@ export class ShipBuilderValidation {
     private testCleanup(): boolean {
         try {
             // Test that destroy works without errors
-            const testBuilder = new ShipBuilderRefactored(new Container());
+            const testBuilder = new ShipBuilder(new Container());
             testBuilder.destroy();
             return true;
         } catch (error) {

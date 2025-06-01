@@ -9,10 +9,10 @@ export class CameraController implements ICamera {
     private worldContainer: Container;
     private panSpeed: number = 1;
     private minZoom: number = 0.1; // Allow zooming out much further
-    private maxZoom: number = 3;
-
-    constructor(worldContainer: Container) {
+    private maxZoom: number = 3; constructor(worldContainer: Container) {
         this.worldContainer = worldContainer;
+        // Don't apply transform immediately - wait for proper initialization
+        // this.updateTransform();
     }
 
     pan(deltaX: number, deltaY: number): void {
@@ -29,10 +29,10 @@ export class CameraController implements ICamera {
             const zoomFactor = this.zoom / oldZoom;
             this.x = centerX - (centerX - this.x) * zoomFactor;
             this.y = centerY - (centerY - this.y) * zoomFactor;
-        }
+        } this.updateTransform();
+    }
 
-        this.updateTransform();
-    }    reset(): void {
+    reset(): void {
         this.x = 0;
         this.y = 0;
         this.zoom = 0.25; // Reset to default much more zoomed out view
@@ -51,12 +51,16 @@ export class CameraController implements ICamera {
             x: (screenPos.x - this.x) / this.zoom,
             y: (screenPos.y - this.y) / this.zoom
         };
-    }
-
-    private updateTransform(): void {
+    } public updateTransform(): void {
         this.worldContainer.x = this.x;
         this.worldContainer.y = this.y;
         this.worldContainer.scale.set(this.zoom);
+    }
+
+    setPosition(x: number, y: number): void {
+        this.x = x;
+        this.y = y;
+        this.updateTransform();
     }
 
     // Configuration methods

@@ -1,5 +1,5 @@
 import { Application as PixiApplication, Container } from 'pixi.js';
-import Stats from 'stats.js';
+import * as Stats from 'stats.js';
 import { IApplication, GameConfig, GameState } from './types';
 import { GameLoop } from './GameLoop';
 import { serviceContainer } from './ServiceContainer';

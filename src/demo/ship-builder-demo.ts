@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js';
 import { Engine } from 'matter-js';
 import { Application } from '@/core/Application';
-import { ShipBuilderRefactored as ShipBuilder } from '@/ui/ShipBuilderRefactored';
+import { ShipBuilder } from '@/ui/ShipBuilder';
 import { ShipSystem } from '@/systems/ShipSystem';
 import { EntityManager } from '@/entities/EntityManager';
 import { Block } from '@/entities/Block';

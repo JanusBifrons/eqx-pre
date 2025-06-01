@@ -164,8 +164,7 @@ export class RenderingEngine {
         if (!this.config.enableCamera || !this.pixiApp) return;
 
         const stage = this.pixiApp.stage;
-        stage.interactive = true;
-        stage.eventMode = 'static';
+        stage.eventMode = 'static'; // Use static event mode for better performance
 
         // Pan controls
         stage.on('pointerdown', this.onPointerDown.bind(this));

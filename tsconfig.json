@@ -1,38 +1,36 @@
 {  "compilerOptions": {
-    "target": "ES2019",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
-    "lib": ["ES2019", "DOM", "DOM.Iterable"],
-    "skipLibCheck": true,
+  "target": "ES2019",
+  "useDefineForClassFields": true,
+  "module": "ESNext",
+  "lib": ["ES2019", "DOM", "DOM.Iterable"],
+  "skipLibCheck": true,
+  "allowSyntheticDefaultImports": true,
 
-    /* JSX Configuration */
-    "jsx": "react-jsx",
+  /* JSX Configuration */
+  "jsx": "react-jsx",    /* Bundler mode */
+  "moduleResolution": "node",
+  "resolveJsonModule": true,
+  "isolatedModules": true,
+  "noEmit": true,
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
+  /* Linting */
+  "strict": true,
+  "noUnusedLocals": true,
+  "noUnusedParameters": true,
+  "noFallthroughCasesInSwitch": true,
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-
-    /* Path mapping */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@/core/*": ["src/core/*"],
-      "@/systems/*": ["src/systems/*"],
-      "@/entities/*": ["src/entities/*"],
-      "@/components/*": ["src/components/*"],
-      "@/ui/*": ["src/ui/*"],
-      "@/store/*": ["src/store/*"],
-      "@/utils/*": ["src/utils/*"]
-    }
+  /* Path mapping */
+  "baseUrl": ".",
+  "paths": {
+    "@/*": ["src/*"],
+    "@/core/*": ["src/core/*"],
+    "@/systems/*": ["src/systems/*"],
+    "@/entities/*": ["src/entities/*"],
+    "@/components/*": ["src/components/*"],
+    "@/ui/*": ["src/ui/*"],
+    "@/store/*": ["src/store/*"],
+    "@/utils/*": ["src/utils/*"]
+  }
   },
   "include": ["src/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]

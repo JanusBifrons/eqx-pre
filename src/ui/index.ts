@@ -6,8 +6,5 @@ export * from './components/InputHandler';
 export * from './components/BlockPlacer';
 export * from './components/BlockPreview';
 
-// Export the refactored ShipBuilder
-export { ShipBuilderRefactored } from './ShipBuilderRefactored';
-
-// Keep the original for backward compatibility
-export { ShipBuilder as ShipBuilderOriginal } from './ShipBuilder';
+// Export the main ShipBuilder implementation
+export { ShipBuilder } from './ShipBuilder';
