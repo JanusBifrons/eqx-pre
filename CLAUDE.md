@@ -3,8 +3,14 @@
 ## ⚠️ CRITICAL POWERSHELL RULES ⚠️
 
 ### ⚠️ MISTAKE COUNTER ⚠️
-**Times Claude has incorrectly used && in PowerShell: 9** 
+**Times Claude has incorrectly used && in PowerShell: 16** 
 (User specifically asked to stop using && multiple times)
+
+### 🚨 CRITICAL: USER FEEDBACK ON CLI ISSUES 🚨
+- Persistent ignoring of CLAUDE.md guidelines
+- Running commands in async/watch mode causing hangs
+- Using wrong syntax despite repeated corrections
+- **THIS MUST STOP - SOLUTION IMPLEMENTED**
 
 ### Command Chaining Syntax
 - ✅ **CORRECT**: `cd "c:\Users\alecv\Desktop\eqx-pre\eqx-pre"; npm run dev`

@@ -48,6 +48,8 @@ const ActionContainer = styled(Box)(() => ({
     display: 'flex',
     flexDirection: 'column',
     gap: 16,
+    maxWidth: 'calc(100vw - 40px)', // Prevent overflow
+    maxHeight: 'calc(100vh - 120px)', // Leave space for header/footer
     zIndex: 1000,
 }));
 

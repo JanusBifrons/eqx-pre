@@ -71,15 +71,16 @@ export class RenderingEngine {
         this.worldContainer = new Container();
         this.uiContainer = new Container();
         this.debugContainer = new Container();
-    }
-
-    async initialize(): Promise<void> {
+    } async initialize(): Promise<void> {
         try {
             await this.createPixiApplication();
             this.setupContainers();
             this.setupCameraControls();
             this.setupResizeHandling();
             this.createDebugUI();
+
+            // Initialize debug visuals
+            this.updateDebugVisuals();
 
             console.log('✅ Unified Rendering Engine initialized');
         } catch (error) {
@@ -116,9 +117,7 @@ export class RenderingEngine {
         this.domContainer.style.position = 'relative';
 
         console.log(`🎨 Canvas initialized: ${width}x${height} (resolution: ${this.config.resolution})`);
-    }
-
-    private setupContainers(): void {
+    } private setupContainers(): void {
         if (!this.pixiApp) return;
 
         // World container - affected by camera
@@ -136,6 +135,9 @@ export class RenderingEngine {
         this.pixiApp.stage.addChild(this.debugContainer);
 
         this.pixiApp.stage.sortableChildren = true;
+
+        console.log(`🔧 Containers setup - Stage children: ${this.pixiApp.stage.children.length}`);
+        console.log(`🔧 Debug container zIndex: ${this.debugContainer.zIndex}`);
     }
 
     private setupCameraControls(): void {
@@ -276,30 +278,30 @@ export class RenderingEngine {
                 this.updateDebugInfo();
             });
         }
-    }
-
-    private updateDebugVisuals(): void {
+    } private updateDebugVisuals(): void {
         this.debugContainer.removeChildren();
 
         if (this.debugOptions.showBorder) {
+            console.log('🎨 Drawing debug border');
             this.drawDebugBorder();
         }
 
         if (this.debugOptions.showCenter) {
+            console.log('🎨 Drawing debug center');
             this.drawDebugCenter();
         }
-    }
-
-    private drawDebugBorder(): void {
+    } private drawDebugBorder(): void {
         if (!this.pixiApp) return;
 
+        console.log(`🎨 Drawing border - screen: ${this.pixiApp.screen.width}x${this.pixiApp.screen.height}`);
+
         const border = new Graphics();
-        border.lineStyle(2, 0xff0000, 0.8);
+        border.lineStyle(4, 0xff0000, 1.0); // Make it thicker and fully opaque
         border.drawRect(0, 0, this.pixiApp.screen.width, this.pixiApp.screen.height);
 
         // Add corner markers
-        const cornerSize = 20;
-        border.lineStyle(3, 0xff0000, 1);
+        const cornerSize = 30; // Make corners bigger
+        border.lineStyle(6, 0xff0000, 1);
 
         // Top-left
         border.moveTo(0, cornerSize);
@@ -321,28 +323,36 @@ export class RenderingEngine {
         border.lineTo(0, this.pixiApp.screen.height);
         border.lineTo(0, this.pixiApp.screen.height - cornerSize);
 
-        this.debugContainer.addChild(border);
-    }
+        // Add a test rectangle in the center to make sure graphics are visible
+        border.lineStyle(2, 0xff0000, 1.0);
+        border.drawRect(this.pixiApp.screen.width / 2 - 50, this.pixiApp.screen.height / 2 - 50, 100, 100);
 
-    private drawDebugCenter(): void {
+        this.debugContainer.addChild(border);
+        console.log(`✅ Debug border added to container, children count: ${this.debugContainer.children.length}`);
+    } private drawDebugCenter(): void {
         if (!this.pixiApp) return;
 
         const centerX = this.pixiApp.screen.width / 2;
         const centerY = this.pixiApp.screen.height / 2;
 
+        console.log(`🎨 Drawing center crosshair at: ${centerX}, ${centerY}`);
+
         const center = new Graphics();
-        center.lineStyle(2, 0x00ff00, 0.8);
+        center.lineStyle(4, 0x00ff00, 1.0); // Make it thicker and fully opaque
 
-        // Crosshair
-        center.moveTo(centerX - 50, centerY);
-        center.lineTo(centerX + 50, centerY);
-        center.moveTo(centerX, centerY - 50);
-        center.lineTo(centerX, centerY + 50);
+        // Larger crosshair
+        center.moveTo(centerX - 100, centerY);
+        center.lineTo(centerX + 100, centerY);
+        center.moveTo(centerX, centerY - 100);
+        center.lineTo(centerX, centerY + 100);
 
-        // Center circle
-        center.drawCircle(centerX, centerY, 5);
+        // Center circle - filled for better visibility
+        center.beginFill(0x00ff00, 1.0);
+        center.drawCircle(centerX, centerY, 10);
+        center.endFill();
 
         this.debugContainer.addChild(center);
+        console.log(`✅ Debug center added to container, children count: ${this.debugContainer.children.length}`);
     } private updateDebugInfo(): void {
         if (!this.config.enableDebug || !this.pixiApp) return;
 
@@ -431,15 +441,16 @@ export class RenderingEngine {
             x: (screenX - this.pixiApp.screen.width / 2) / this.camera.zoom - this.camera.x,
             y: (screenY - this.pixiApp.screen.height / 2) / this.camera.zoom - this.camera.y
         };
-    }
-
-    private updateCameraTransform(): void {
+    } private updateCameraTransform(): void {
         if (!this.pixiApp) return;
 
         this.worldContainer.x = this.camera.x * this.camera.zoom + this.pixiApp.screen.width / 2;
         this.worldContainer.y = this.camera.y * this.camera.zoom + this.pixiApp.screen.height / 2;
         this.worldContainer.scale.set(this.camera.zoom);
         this.worldContainer.rotation = this.camera.rotation;
+
+        // Update debug visuals when camera changes
+        this.updateDebugVisuals();
     } private resize(width: number, height: number): void {
         if (!this.pixiApp || width <= 0 || height <= 0) return;
 
@@ -510,6 +521,62 @@ export class RenderingEngine {
             }
             this.debugContainer.removeChildren();
         }
+    }    // Debug visualization control methods for MUI integration
+    public setShowDebugBorder(show: boolean): void {
+        console.log(`🔧 Debug border ${show ? 'enabled' : 'disabled'}`);
+        this.debugOptions.showBorder = show;
+        this.updateDebugVisuals();
+    }
+
+    public getShowDebugBorder(): boolean {
+        return this.debugOptions.showBorder;
+    } public setShowDebugCenter(show: boolean): void {
+        console.log(`🔧 Debug center ${show ? 'enabled' : 'disabled'}`);
+        this.debugOptions.showCenter = show;
+        this.updateDebugVisuals();
+    }
+
+    public getShowDebugCenter(): boolean {
+        return this.debugOptions.showCenter;
+    }
+
+    public setShowDebugStats(show: boolean): void {
+        this.debugOptions.showStats = show;
+        this.updateDebugVisuals();
+    }
+
+    public getShowDebugStats(): boolean {
+        return this.debugOptions.showStats;
+    }
+
+    public getDebugInfo(): any {
+        if (!this.pixiApp) return null;
+
+        const canvas = this.pixiApp.view as HTMLCanvasElement;
+        const containerRect = this.domContainer.getBoundingClientRect();
+
+        return {
+            camera: {
+                x: this.camera.x,
+                y: this.camera.y,
+                zoom: this.camera.zoom,
+                rotation: this.camera.rotation
+            },
+            screenSize: {
+                width: this.pixiApp.screen.width,
+                height: this.pixiApp.screen.height
+            },
+            canvasSize: {
+                width: canvas.width,
+                height: canvas.height
+            },
+            containerSize: {
+                width: containerRect.width,
+                height: containerRect.height
+            },
+            resolution: this.config.resolution,
+            fps: Math.round(this.pixiApp.ticker.FPS)
+        };
     }
 
     public destroy(): void {

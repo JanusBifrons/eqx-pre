@@ -663,4 +663,51 @@ export class ShipBuilderRefactored {
     public resetZoom(): void {
         this.camera.reset();
     }
+
+    // Additional methods for ShipBuilderAdapter compatibility
+    public setShowGrid(show: boolean): void {
+        this.options.showGrid = show;
+        console.log(`Grid visibility set to: ${show ? 'enabled' : 'disabled'}`);
+    }
+
+    public getShowGrid(): boolean {
+        return this.options.showGrid;
+    }
+
+    public setShowConnectionPoints(show: boolean): void {
+        this.options.showConnectionPoints = show;
+        console.log(`Connection points visibility set to: ${show ? 'enabled' : 'disabled'}`);
+    }
+
+    public getShowConnectionPoints(): boolean {
+        return this.options.showConnectionPoints;
+    }
+
+    public setSnapToGrid(snap: boolean): void {
+        this.options.snapToGrid = snap;
+        console.log(`Snap to grid set to: ${snap ? 'enabled' : 'disabled'}`);
+    }
+
+    public getSnapToGrid(): boolean {
+        return this.options.snapToGrid;
+    } public getZoom(): number {
+        return this.camera.zoom;
+    } public setZoom(zoom: number): void {
+        const currentZoom = this.camera.zoom;
+        const deltaZoom = zoom - currentZoom;
+        this.camera.zoomTo(deltaZoom);
+    }
+
+    public resetCamera(): void {
+        this.camera.reset();
+    }
+
+    public setDebugVisualization(enabled: boolean): void {
+        this.options.enableDebugVisualization = enabled;
+        console.log(`Debug visualization set to: ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    public getDebugVisualization(): boolean {
+        return this.options.enableDebugVisualization || false;
+    }
 }

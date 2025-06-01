@@ -35,7 +35,8 @@ const PaletteContainer = styled(Card)(() => ({
     left: 10,
     top: 10,
     width: 280,
-    maxHeight: 'calc(100vh - 20px)',
+    maxWidth: 'calc(100vw - 20px)', // Prevent overflow
+    maxHeight: 'calc(100vh - 120px)', // Leave space for footer
     overflowY: 'auto',
     backgroundColor: alpha(spaceColors.background.paper, 0.95),
     backdropFilter: 'blur(10px)',

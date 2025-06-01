@@ -1,6 +1,6 @@
-import { Container, Graphics, Text, FederatedPointerEvent } from 'pixi.js';
+import { Container, Graphics, FederatedPointerEvent } from 'pixi.js';
 import { Ship } from '@/entities/Ship';
-import { Block, BlockType } from '@/entities/Block';
+import { Block } from '@/entities/Block';
 import { BlockDefinitions } from '@/entities/BlockDefinitions';
 import { Vector } from 'matter-js';
 
@@ -38,22 +38,8 @@ export class ShipBuilder {
     private panSpeed: number = 1;
     private zoomSpeed: number = 0.1;
     private minZoom: number = 0.5;
-    private maxZoom: number = 3;    // UI elements
-    private statsContainer: Container;
-    private statsText: Text;
-    private testButton: Graphics;
-    private clearButton: Graphics;
-    private instructionsContainer: Container;
-
-    // Layout constants
-    private readonly PALETTE_WIDTH = 200;
-    private readonly PALETTE_HEIGHT = 600;
-    private readonly STATS_WIDTH = 300;
-    private readonly STATS_HEIGHT = 200;
-    private readonly BUTTON_WIDTH = 120;
-    private readonly BUTTON_HEIGHT = 40;
-    private readonly INSTRUCTIONS_WIDTH = 350;
-    private readonly INSTRUCTIONS_HEIGHT = 250;
+    private maxZoom: number = 3;    // UI elements - now handled by MUI components
+    // Legacy UI elements removed - replaced by MUI components
 
     constructor(container: Container, options: Partial<BuilderOptions> = {}) {
         this.container = container;
@@ -68,15 +54,8 @@ export class ShipBuilder {
             ...options
         };// Initialize camera system
         this.worldContainer = new Container();
-        this.container.addChild(this.worldContainer);
-
-        this.gridGraphics = new Graphics();
+        this.container.addChild(this.worldContainer); this.gridGraphics = new Graphics();
         this.blockPalette = new Container();
-        this.statsContainer = new Container();
-        this.statsText = new Text('', { fill: 0xFFFFFF, fontSize: 14 });
-        this.testButton = new Graphics();
-        this.clearButton = new Graphics();
-        this.instructionsContainer = new Container();
 
         this.initialize();
     }
@@ -92,22 +71,17 @@ export class ShipBuilder {
         }
 
         this.worldContainer.addChild(this.ship.container);        // Add UI elements directly to main container (fixed position, no panning)
-        // Set z-indexes to ensure proper layering
-        this.statsContainer.zIndex = 10;
-        this.instructionsContainer.zIndex = 20;
+        // UI elements now handled by MUI components - old canvas UI removed
         this.blockPalette.zIndex = 100; // Highest z-index for palette
 
-        this.container.addChild(this.statsContainer);
-        this.container.addChild(this.instructionsContainer);
         this.container.addChild(this.blockPalette);
 
         // Enable z-index sorting on the main container
         this.container.sortableChildren = true; this.setupGrid();
         this.setupPalette();
-        this.setupUI();
-        this.setupInstructions();
+        // UI setup now handled by MUI components - old canvas UI methods stubbed out
         this.setupInteraction();
-        this.updateStats();
+        // Stats update now handled by MUI components
 
         // Add debug visualization if enabled
         if (this.options.enableDebugVisualization) {
@@ -122,200 +96,16 @@ export class ShipBuilder {
     } private setupGrid(): void {
         // Grid is no longer rendered, but we keep this method for consistency
         // and potential future grid re-enabling        // Create an empty graphics object without any rendering
-        this.gridGraphics.clear();
-
-        // Log that we're using a gridless setup
+        this.gridGraphics.clear();        // Log that we're using a gridless setup
         console.log("Using gridless design for better mouse tracking");
-    } private setupPalette(): void {
-        // Create palette background
-        const bg = new Graphics();
-        bg.beginFill(0x222222, 0.9);
-        bg.drawRect(0, 0, this.PALETTE_WIDTH, this.PALETTE_HEIGHT);
-        bg.endFill();
-        this.blockPalette.addChild(bg);
-
-        // Position palette on the left side using screen coordinates
-        // Since container is centered, left edge is at -screenWidth/2
-        // For 1600x1000 screen: left edge is at -800
-        this.blockPalette.x = -780; // Near left edge with some margin
-        this.blockPalette.y = -480; // Near top edge with some margin
-
-        // Add title
-        const title = new Text('Block Palette', { fill: 0xFFFFFF, fontSize: 16 });
-        title.x = 10;
-        title.y = 10;
-        this.blockPalette.addChild(title);
-
-        // Add block categories
-        let currentY = 40;
-        const categories = [
-            { type: BlockType.HULL, label: 'Hull Blocks' },
-            { type: BlockType.ENGINE, label: 'Engines' },
-            { type: BlockType.WEAPON, label: 'Weapons' },
-            { type: BlockType.UTILITY, label: 'Utilities' }
-        ];
-
-        for (const category of categories) {
-            // Category header
-            const categoryText = new Text(category.label, { fill: 0xCCCCCC, fontSize: 14 });
-            categoryText.x = 10;
-            categoryText.y = currentY;
-            this.blockPalette.addChild(categoryText);
-            currentY += 25;
-
-            // Add blocks of this type
-            const blocksOfType = BlockDefinitions.getByType(category.type);
-            for (const { id, definition } of blocksOfType) {
-                const blockButton = this.createBlockButton(id, definition, 10, currentY);
-                this.blockPalette.addChild(blockButton);
-                currentY += 60;
-            }
-
-            currentY += 10; // Extra spacing between categories
-        }
     }
 
-    private createBlockButton(blockId: string, definition: any, x: number, y: number): Container {
-        const button = new Container();
-        button.x = x;
-        button.y = y;
+    private setupPalette(): void {
+        // Block palette now handled by MUI components - method stubbed out
+        console.log("Canvas palette setup skipped - using MUI components");
+    }
 
-        // Button background
-        const bg = new Graphics();
-        bg.beginFill(0x444444, 0.8);
-        bg.lineStyle(2, 0x666666);
-        bg.drawRect(0, 0, 180, 50);
-        bg.endFill();
-        button.addChild(bg);
-
-        // Block preview (scaled down)
-        const preview = new Graphics();
-        const scale = 0.8;
-        preview.beginFill(definition.color, 0.8);
-        preview.lineStyle(1, 0xFFFFFF, 0.8);
-
-        switch (definition.shape) {
-            case 'circle':
-                preview.drawCircle(25, 25, definition.width * scale / 2);
-                break;
-            case 'rectangle':
-            default:
-                const w = definition.width * scale;
-                const h = definition.height * scale;
-                preview.drawRect(25 - w / 2, 25 - h / 2, w, h);
-                break;
-        }
-        preview.endFill();
-        button.addChild(preview);
-
-        // Block name
-        const nameText = new Text(blockId.replace('_', ' '), {
-            fill: 0xFFFFFF,
-            fontSize: 10,
-            wordWrap: true,
-            wordWrapWidth: 120
-        });
-        nameText.x = 55;
-        nameText.y = 10;
-        button.addChild(nameText);
-
-        // Block stats
-        const statsText = new Text(`Mass: ${definition.mass}\nHP: ${definition.maxHealth}`, {
-            fill: 0xCCCCCC,
-            fontSize: 8
-        });
-        statsText.x = 55;
-        statsText.y = 25;
-        button.addChild(statsText);        // Make interactive
-        button.interactive = true;
-        button.eventMode = 'static';
-        button.on('pointerdown', () => this.selectBlockType(blockId, button));
-
-        return button;
-    } private setupUI(): void {
-        // Position stats display on the right side using screen coordinates
-        // For 1600x1000 screen: right edge is at 800
-        this.statsContainer.x = 780 - this.STATS_WIDTH; // Near right edge
-        this.statsContainer.y = -480; // Near top edge with some margin
-
-        const statsBg = new Graphics();
-        statsBg.beginFill(0x222222, 0.9);
-        statsBg.drawRect(0, 0, this.STATS_WIDTH, this.STATS_HEIGHT);
-        statsBg.endFill();
-        this.statsContainer.addChild(statsBg);
-
-        const statsTitle = new Text('Ship Statistics', { fill: 0xFFFFFF, fontSize: 16 });
-        statsTitle.x = 10;
-        statsTitle.y = 10;
-        this.statsContainer.addChild(statsTitle);
-
-        this.statsText.x = 10;
-        this.statsText.y = 35;
-        this.statsContainer.addChild(this.statsText);
-
-        // Build/Test buttons
-        this.setupButtons();
-    } private setupButtons(): void {
-        // Clear button
-        this.clearButton.clear();
-        this.clearButton.beginFill(0xFF4444, 0.8);
-        this.clearButton.lineStyle(2, 0xFF6666);
-        this.clearButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
-        this.clearButton.endFill();
-        this.clearButton.x = 780 - this.BUTTON_WIDTH;
-        this.clearButton.y = -480 + this.STATS_HEIGHT + 30; this.clearButton.interactive = true;
-        this.clearButton.eventMode = 'static';
-        this.clearButton.on('pointerdown', () => this.clearShip());
-        this.container.addChild(this.clearButton);
-
-        const clearText = new Text('Clear Ship', {
-            fontSize: 14,
-            fill: 0xFFFFFF,
-            fontFamily: 'Arial'
-        });
-        clearText.x = this.clearButton.x + (this.BUTTON_WIDTH - clearText.width) / 2;
-        clearText.y = this.clearButton.y + (this.BUTTON_HEIGHT - clearText.height) / 2;
-        this.container.addChild(clearText);// Test button
-        this.testButton.clear();
-        this.testButton.beginFill(0x44FF44, 0.8);
-        this.testButton.lineStyle(2, 0x66FF66);
-        this.testButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
-        this.testButton.endFill();
-        this.testButton.x = 780 - this.BUTTON_WIDTH;
-        this.testButton.y = -480 + this.STATS_HEIGHT + 80; this.testButton.interactive = true;
-        this.testButton.eventMode = 'static';
-        this.testButton.on('pointerdown', () => this.testShip());
-        this.container.addChild(this.testButton);
-
-        const testText = new Text('Test Ship', {
-            fontSize: 14,
-            fill: 0x000000,
-            fontFamily: 'Arial'
-        });
-        testText.x = this.testButton.x + (this.BUTTON_WIDTH - testText.width) / 2;
-        testText.y = this.testButton.y + (this.BUTTON_HEIGHT - testText.height) / 2;
-        this.container.addChild(testText);// Repair connections button
-        const repairButton = new Graphics();
-        repairButton.clear();
-        repairButton.beginFill(0xFFAA00, 0.8);
-        repairButton.lineStyle(2, 0xFFCC44);
-        repairButton.drawRect(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
-        repairButton.endFill();
-        repairButton.x = 780 - this.BUTTON_WIDTH;
-        repairButton.y = -480 + this.STATS_HEIGHT + 130;
-        repairButton.interactive = true;
-        repairButton.eventMode = 'static';
-        repairButton.on('pointerdown', () => this.repairConnections());
-        this.container.addChild(repairButton);
-
-        const repairText = new Text('Repair Links', {
-            fontSize: 14,
-            fill: 0x000000,
-            fontFamily: 'Arial'
-        }); repairText.x = repairButton.x + (this.BUTTON_WIDTH - repairText.width) / 2;
-        repairText.y = repairButton.y + (this.BUTTON_HEIGHT - repairText.height) / 2;
-        this.container.addChild(repairText);
-    } private setupInteraction(): void {
+    private setupInteraction(): void {
         // Set up interaction on the main container to catch all events
         this.container.interactive = true;
         this.container.eventMode = 'static';
@@ -348,7 +138,9 @@ export class ShipBuilder {
         this.container.on('pointerupoutside', (event: FederatedPointerEvent) => this.onPointerUp(event));
         this.container.on('wheel', (event: any) => this.onWheel(event));        // Add keyboard controls
         this.setupKeyboardControls();
-    } private selectBlockType(blockId: string, buttonContainer?: Container): void {
+    }
+
+    public selectBlockType(blockId: string, buttonContainer?: Container): void {
         this.selectedBlockType = blockId;
 
         // Update visual selection feedback
@@ -382,7 +174,7 @@ export class ShipBuilder {
         console.log(`Selected block type: ${blockId}`);
     }
 
-    private deselectBlockType(): void {
+    public deselectBlockType(): void {
         // Clear the selected block type
         this.selectedBlockType = null;
 
@@ -1061,65 +853,12 @@ export class ShipBuilder {
 
         console.log(`🔧 REPAIR SUMMARY: ${repairsSuccessful}/${repairsAttempted} repairs successful`);
         this.updateStats();
+    } private updateStats(): void {
+        // Stats update now handled by MUI components - method stubbed out
+        console.log("Canvas stats update skipped - using MUI components");
     }
 
-    private updateStats(): void {
-        const stats = this.ship.calculateStats();
-        const validation = this.ship.validateStructuralIntegrity();
-
-        let statsString = `Blocks: ${stats.blockCount}\n`;
-        statsString += `Total Mass: ${stats.totalMass.toFixed(1)}\n`;
-        statsString += `Center of Mass: (${stats.centerOfMass.x.toFixed(1)}, ${stats.centerOfMass.y.toFixed(1)})\n`;
-        statsString += `Total Thrust: ${stats.totalThrust}\n`;
-        statsString += `Total Armor: ${stats.totalArmor}\n`;
-        statsString += `Weapons: ${stats.totalWeapons}\n\n`;
-
-        // Enhanced validation output with debugging
-        if (!validation.isValid) {
-            statsString += 'Issues:\n';
-            validation.issues.forEach(issue => {
-                statsString += `• ${issue}\n`;
-            });
-
-            // Debug connection information
-            console.log('🔍 DEBUGGING STRUCTURAL INTEGRITY:');
-            console.log(`Total blocks: ${this.ship.blocks.size}`);
-
-            if (this.ship.blocks.size > 0) {
-                const firstBlock = Array.from(this.ship.blocks.values())[0];
-                const connectedBlocks = this.ship.getConnectedBlocks(firstBlock);
-                console.log(`Connected blocks from first block: ${connectedBlocks.size}`);
-                console.log(`Disconnected blocks: ${this.ship.blocks.size - connectedBlocks.size}`);
-
-                // List all blocks and their connections
-                for (const [id, block] of this.ship.blocks) {
-                    const connectionCount = block.getConnectedBlocks().length;
-                    const isConnected = connectedBlocks.has(block);
-                    console.log(`Block ${id.slice(0, 8)}: ${connectionCount} connections, ${isConnected ? 'CONNECTED' : 'ISOLATED'}`);
-                }
-            }
-        } else {
-            statsString += 'Ship is valid!';
-        }
-
-        this.statsText.text = statsString;
-    } private testShip(): void {
-        const validation = this.ship.validateStructuralIntegrity();
-
-        if (!validation.isValid) {
-            console.warn('Cannot test ship: validation failed', validation.issues);
-            return;
-        }        // Create compound physics body for testing
-        this.ship.createCompoundPhysicsBody();
-        // Enable physics simulation
-        const shipComponent = this.ship.getComponent('ship') as any;
-        if (shipComponent && shipComponent.setConstructed) {
-            shipComponent.setConstructed(true);
-        }
-
-        console.log('Ship test mode activated!');
-        console.log('Ship stats:', this.ship.calculateStats());
-    }    /**
+    /**
      * Test method to verify the enhanced connection system is working
      */
     public testConnectionSystem(): void {
@@ -1215,64 +954,7 @@ export class ShipBuilder {
         this.ship.destroy();
         if (this.previewBlock) {
             this.previewBlock.destroy();
-        }
-        this.container.destroy({ children: true });
-    } private setupInstructions(): void {
-        // Position instructions at the bottom using screen coordinates
-        // For 1600x1000 screen: bottom edge is at 500
-        this.instructionsContainer.x = -this.INSTRUCTIONS_WIDTH / 2;
-        this.instructionsContainer.y = 480 - this.INSTRUCTIONS_HEIGHT; // Near bottom edge// Instructions background with border
-        const instructionsBg = new Graphics();
-        instructionsBg.beginFill(0x1a1a1a, 0.95);
-        instructionsBg.lineStyle(3, 0x00AAFF, 0.8);
-        instructionsBg.drawRect(0, 0, this.INSTRUCTIONS_WIDTH, this.INSTRUCTIONS_HEIGHT);
-        instructionsBg.endFill();
-        this.instructionsContainer.addChild(instructionsBg);
-
-        // Instructions title with glow effect
-        const title = new Text('🚀 Ship Builder Controls', {
-            fill: 0x00AAFF,
-            fontSize: 18,
-            fontWeight: 'bold',
-            dropShadow: true,
-            dropShadowColor: 0x004488,
-            dropShadowBlur: 4,
-            dropShadowDistance: 2
-        });
-        title.x = 10;
-        title.y = 8;
-        this.instructionsContainer.addChild(title);        // Instructions text with better formatting
-        const instructions = [
-            '🎯 Click blocks in LEFT PALETTE to select them',
-            '📍 Click in BUILDING AREA to place selected blocks',
-            '❌ Press ESC or right-click to deselect block type',
-            '🔗 Blocks auto-connect when placed adjacent',
-            '🔨 BUILD MODE: Construct and modify your ship',
-            '🚀 TEST MODE: Pilot ship with WASD keys',
-            '📊 View ship stats in the RIGHT PANEL',
-            '',
-            '🎨 Block Preview Colors:',
-            '   • 🟢 Green: Valid placement position',
-            '   • 🟠 Orange: Outside building area',
-            '   • 🔴 Red: Position occupied by another block',
-            '',
-            '🎮 Camera Controls:',
-            '   • Middle-click & drag to pan camera',
-            '   • Mouse wheel to zoom in/out',
-            '   • Shift+Arrow keys to pan',
-            '   • Ctrl+R to reset camera view',
-            '   • Ctrl +/- to zoom'
-        ];
-
-        const instructionText = new Text(instructions.join('\n'), {
-            fill: 0xEEEEEE,
-            fontSize: 12,
-            lineHeight: 18,
-            wordWrap: true,
-            wordWrapWidth: this.INSTRUCTIONS_WIDTH - 20
-        }); instructionText.x = 10;
-        instructionText.y = 35;
-        this.instructionsContainer.addChild(instructionText);
+        } this.container.destroy({ children: true });
     }
 
     public resize(screenWidth: number, screenHeight: number): void {
@@ -1280,50 +962,8 @@ export class ShipBuilder {
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
-        // Calculate half dimensions for positioning
-        const halfWidth = screenWidth / 2;
-        const halfHeight = screenHeight / 2;
-
-        // Update grid size if screen is too small
-        const minScreenWidth = this.PALETTE_WIDTH + (this.options.gridWidth * this.options.gridSize) + this.STATS_WIDTH + 80;
-        const minScreenHeight = Math.max(this.PALETTE_HEIGHT, this.options.gridHeight * this.options.gridSize) + this.INSTRUCTIONS_HEIGHT + 40;
-
-        // Reposition elements based on new screen size using fixed coordinates
-        // Reposition palette (left side)
-        this.blockPalette.x = -halfWidth + 10;
-        this.blockPalette.y = -halfHeight + 10;        // Reposition stats (right side)
-        this.statsContainer.x = halfWidth - this.STATS_WIDTH - 10;
-        this.statsContainer.y = -halfHeight + 10;
-
-        // Reposition buttons (right side, below stats)
-        const buttonX = halfWidth - this.BUTTON_WIDTH - 10;
-        this.clearButton.x = buttonX;
-        this.clearButton.y = -halfHeight + this.STATS_HEIGHT + 30;
-        this.testButton.x = buttonX;
-        this.testButton.y = -halfHeight + this.STATS_HEIGHT + 80;
-
-        // Update button text positions (if they exist)
-        for (let i = 0; i < this.container.children.length; i++) {
-            const child = this.container.children[i]; if (child instanceof Text) {
-                // Reposition text relative to buttons
-                if (child.text === 'Clear Ship') {
-                    child.x = this.clearButton.x + (this.BUTTON_WIDTH - child.width) / 2;
-                    child.y = this.clearButton.y + (this.BUTTON_HEIGHT - child.height) / 2;
-                } else if (child.text === 'Test Ship') {
-                    child.x = this.testButton.x + (this.BUTTON_WIDTH - child.width) / 2;
-                    child.y = this.testButton.y + (this.BUTTON_HEIGHT - child.height) / 2;
-                }
-            }
-        }
-
-        // Reposition instructions (bottom center)
-        this.instructionsContainer.x = -this.INSTRUCTIONS_WIDTH / 2;
-        this.instructionsContainer.y = halfHeight - this.INSTRUCTIONS_HEIGHT - 10;
-
-        console.log(`UI resized for screen: ${screenWidth}x${screenHeight}, minimum required: ${minScreenWidth}x${minScreenHeight}`);
-        console.log(`Block Palette positioned at: (${this.blockPalette.x}, ${this.blockPalette.y})`);
-        console.log(`Stats Container positioned at: (${this.statsContainer.x}, ${this.statsContainer.y})`);
-        console.log(`Instructions positioned at: (${this.instructionsContainer.x}, ${this.instructionsContainer.y})`);
+        // UI layout now handled by MUI components
+        console.log(`Canvas resized to: ${screenWidth}x${screenHeight}`);
     }
 
     // Camera system methods

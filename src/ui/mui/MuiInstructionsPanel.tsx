@@ -36,7 +36,8 @@ const InstructionsContainer = styled(Card)(() => ({
     bottom: 20,
     left: 20,
     width: 320,
-    maxHeight: 400,
+    maxWidth: 'calc(100vw - 40px)', // Prevent overflow
+    maxHeight: 'calc(100vh - 120px)', // Leave space for header/footer
     backgroundColor: alpha(spaceColors.background.paper, 0.95),
     backdropFilter: 'blur(10px)',
     border: `2px solid ${alpha(spaceColors.primary.main, 0.3)}`,

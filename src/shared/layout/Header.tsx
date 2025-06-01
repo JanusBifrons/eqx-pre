@@ -5,7 +5,13 @@ export const Header: React.FC = () => {
     const router = useRouter();
     const currentPath = router.state.location.pathname;
 
-    const isActive = (path: string) => currentPath === path;
+    const isActive = (path: string) => {
+        // Handle exact matches and also root path mapping to ship-builder
+        if (path === '/ship-builder' && (currentPath === '/ship-builder' || currentPath === '/')) {
+            return true;
+        }
+        return currentPath === path;
+    };
 
     return (
         <header className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-50">

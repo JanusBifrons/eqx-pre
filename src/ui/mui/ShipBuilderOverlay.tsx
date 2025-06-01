@@ -18,9 +18,11 @@ interface ShipBuilderOverlayProps {
     onZoomIn: () => void;
     onZoomOut: () => void;
     onCenterView: () => void;
+
     // Collision logging controls
     collisionLogging: boolean;
     onCollisionLoggingChange: (enabled: boolean) => void;
+}
 }
 
 export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
@@ -78,10 +80,11 @@ export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
                 hasBlocks={hasBlocks}
                 collisionLogging={collisionLogging}
                 onCollisionLoggingChange={onCollisionLoggingChange}
-            />
-
-            {/* Instructions Panel - Bottom Left */}
+            />            {/* Instructions Panel - Bottom Left */}
             <MuiInstructionsPanel />
+
+            {/* Ship Builder Controls - Bottom Center */}
+            {/* Removed ship builder controls as requested by user */}
         </Box>
     );
 };

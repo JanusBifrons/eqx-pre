@@ -12,6 +12,20 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
     const [selectedBlockType, setSelectedBlockType] = useState<string | null>(null);
     const [collisionLogging, setCollisionLogging] = useState<boolean>(false);
 
+    // View state
+    const [showGrid, setShowGrid] = useState<boolean>(true);
+    const [showConnectionPoints, setShowConnectionPoints] = useState<boolean>(false);
+    const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
+
+    // Camera state
+    const [zoom, setZoom] = useState<number>(1.0);
+
+    // Debug state
+    const [debugEnabled, setDebugEnabled] = useState<boolean>(false);
+    const [showDebugBorder, setShowDebugBorder] = useState<boolean>(false);
+    const [showDebugCenter, setShowDebugCenter] = useState<boolean>(false);
+    const [showDebugStats, setShowDebugStats] = useState<boolean>(false);
+
     // Update ship state when adapter emits changes
     useEffect(() => {
         const handleShipChanged = () => {
@@ -104,10 +118,105 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
         shipBuilderAdapter.centerCamera();
     }, []);
 
+    const handleResetCamera = useCallback(() => {
+        shipBuilderAdapter.resetCamera();
+        setZoom(1.0); // Reset zoom state
+    }, []);
+
+    const handleZoomChange = useCallback((newZoom: number) => {
+        setZoom(newZoom);
+        shipBuilderAdapter.setZoom(newZoom);
+    }, []);
+
+    // View control handlers
+    const handleShowGridChange = useCallback((show: boolean) => {
+        setShowGrid(show);
+        shipBuilderAdapter.setShowGrid(show);
+    }, []);
+
+    const handleShowConnectionPointsChange = useCallback((show: boolean) => {
+        setShowConnectionPoints(show);
+        shipBuilderAdapter.setShowConnectionPoints(show);
+    }, []);
+
+    const handleSnapToGridChange = useCallback((snap: boolean) => {
+        setSnapToGrid(snap);
+        shipBuilderAdapter.setSnapToGrid(snap);
+    }, []);
+
+    // Debug control handlers
+    const handleDebugEnabledChange = useCallback((enabled: boolean) => {
+        setDebugEnabled(enabled);
+        shipBuilderAdapter.setDebugVisualization(enabled);
+    }, []); const handleShowDebugBorderChange = useCallback((show: boolean) => {
+        setShowDebugBorder(show);
+        shipBuilderAdapter.setShowDebugBorder(show);
+    }, []);
+
+    const handleShowDebugCenterChange = useCallback((show: boolean) => {
+        setShowDebugCenter(show);
+        shipBuilderAdapter.setShowDebugCenter(show);
+    }, []);
+
+    const handleShowDebugStatsChange = useCallback((show: boolean) => {
+        setShowDebugStats(show);
+        shipBuilderAdapter.setShowDebugStats(show);
+    }, []);
+
     const handleCollisionLoggingChange = useCallback((enabled: boolean) => {
         setCollisionLogging(enabled);
         // Enable/disable collision logging in the collision manager
         shipBuilderAdapter.setCollisionLogging(enabled);
+    }, []);
+
+    // Initialize state from adapter on mount
+    useEffect(() => {
+        // Sync initial state with adapter
+        const syncWithAdapter = () => {
+            const currentZoom = shipBuilderAdapter.getZoom();
+            if (currentZoom !== undefined) {
+                setZoom(currentZoom);
+            }
+
+            const gridEnabled = shipBuilderAdapter.getShowGrid();
+            if (gridEnabled !== undefined) {
+                setShowGrid(gridEnabled);
+            }
+
+            const connectionPointsEnabled = shipBuilderAdapter.getShowConnectionPoints();
+            if (connectionPointsEnabled !== undefined) {
+                setShowConnectionPoints(connectionPointsEnabled);
+            }
+
+            const snapEnabled = shipBuilderAdapter.getSnapToGrid();
+            if (snapEnabled !== undefined) {
+                setSnapToGrid(snapEnabled);
+            } const debugEnabled = shipBuilderAdapter.getDebugVisualization();
+            if (debugEnabled !== undefined) {
+                setDebugEnabled(debugEnabled);
+            }
+
+            // Sync debug visual states
+            const debugBorder = shipBuilderAdapter.getShowDebugBorder();
+            if (debugBorder !== undefined) {
+                setShowDebugBorder(debugBorder);
+            }
+
+            const debugCenter = shipBuilderAdapter.getShowDebugCenter();
+            if (debugCenter !== undefined) {
+                setShowDebugCenter(debugCenter);
+            }
+
+            const debugStats = shipBuilderAdapter.getShowDebugStats();
+            if (debugStats !== undefined) {
+                setShowDebugStats(debugStats);
+            }
+        };
+
+        // Small delay to ensure adapter is ready
+        const timeoutId = setTimeout(syncWithAdapter, 100);
+
+        return () => clearTimeout(timeoutId);
     }, []); return (
         <ShipBuilderOverlay
             ship={ship}
@@ -121,6 +230,35 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onCenterView={handleCenterView}
+            onResetCamera={handleResetCamera}
+            showGrid={showGrid}
+            showConnectionPoints={showConnectionPoints}
+            snapToGrid={snapToGrid}
+            onShowGridChange={handleShowGridChange}
+            onShowConnectionPointsChange={handleShowConnectionPointsChange}
+            onSnapToGridChange={handleSnapToGridChange}
+            zoom={zoom}
+            onZoomChange={handleZoomChange}
+            debugEnabled={debugEnabled}
+            onDebugEnabledChange={handleDebugEnabledChange}
+            showDebugBorder={showDebugBorder}
+            showDebugCenter={showDebugCenter}
+            showDebugStats={showDebugStats}
+            onShowDebugBorderChange={handleShowDebugBorderChange}
+            onShowDebugCenterChange={handleShowDebugCenterChange}
+            onShowDebugStatsChange={handleShowDebugStatsChange} debugInfo={shipBuilderAdapter.getDebugInfo() || {
+                camera: {
+                    x: 0,
+                    y: 0,
+                    zoom: zoom,
+                    rotation: 0,
+                },
+                screenSize: { width: 800, height: 600 },
+                canvasSize: { width: 800, height: 600 },
+                containerSize: { width: 800, height: 600 },
+                resolution: 1.0,
+                fps: 60,
+            }}
             collisionLogging={collisionLogging}
             onCollisionLoggingChange={handleCollisionLoggingChange}
         />

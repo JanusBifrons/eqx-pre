@@ -133,7 +133,7 @@ export class Application implements IApplication {
             backgroundColor: this.config.backgroundColor,
             antialias: this.config.antialias,
             resolution: this.config.resolution,
-            enableDebug: true, // Enable debug by default for development            enableCamera: true
+            enableDebug: false, // Disable core debug panel (debug functionality moved to MUI controls)            enableCamera: true
         });
 
         await this.renderingEngine.initialize();
