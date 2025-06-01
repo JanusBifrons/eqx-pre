@@ -6,7 +6,9 @@ import { ShipBuilderBridge } from '../../ui/mui/ShipBuilderBridge';
 import { shipBuilderAdapter } from '../../ui/mui/ShipBuilderAdapter';
 
 export const ShipBuilderPage: React.FC = () => {
-    const { containerRef, isLoading, loadDemo, cleanup } = useDemoContainer(); useEffect(() => {
+    const { containerRef, isLoading, loadDemo, cleanup } = useDemoContainer();
+
+    useEffect(() => {
         // Initialize the demo and connect the adapter
         const initializeWithAdapter = async (container?: HTMLDivElement) => {
             if (!container) return;
@@ -34,10 +36,14 @@ export const ShipBuilderPage: React.FC = () => {
     return (
         <div className="relative w-full h-full overflow-hidden">
             <LoadingOverlay isLoading={isLoading} demoName="Ship Builder" />
+            {/* Canvas Container */}
             <div ref={containerRef} className="w-full h-full" />
 
             {/* MUI Overlay - only render when not loading */}
-            {!isLoading && <ShipBuilderBridge />}
+            {!isLoading && (<div className="absolute inset-0 pointer-events-none">
+                <ShipBuilderBridge />
+            </div>
+            )}
         </div>
     );
 };

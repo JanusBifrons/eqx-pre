@@ -26,14 +26,13 @@ const DebugContainer = styled(Card)(() => ({
     top: 10,
     right: 350, // Position it to the left of the stats panel
     width: 280,
-    maxWidth: 'calc(100vw - 20px)', // Prevent overflow
-    maxHeight: 'calc(100vh - 120px)', // Leave space for footer
+    maxWidth: 'calc(100% - 20px)', // Use relative sizing
+    maxHeight: 'calc(100% - 20px)', // Use relative sizing
     overflowY: 'auto',
-    backgroundColor: alpha(spaceColors.background.paper, 0.95),
-    backdropFilter: 'blur(10px)',
+    backgroundColor: alpha(spaceColors.background.paper, 0.95), backdropFilter: 'blur(10px)',
     border: `2px solid ${alpha(spaceColors.warning.main, 0.3)}`,
     borderRadius: '12px',
-    zIndex: 1000,
+    zIndex: 10,
     '&::-webkit-scrollbar': {
         width: 8,
     },

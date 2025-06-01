@@ -42,15 +42,14 @@ interface ActionButtonsProps {
 }
 
 const ActionContainer = styled(Box)(() => ({
-    position: 'fixed',
+    position: 'absolute',
     bottom: 20,
     right: 20,
-    display: 'flex',
-    flexDirection: 'column',
+    display: 'flex', flexDirection: 'column',
     gap: 16,
-    maxWidth: 'calc(100vw - 40px)', // Prevent overflow
-    maxHeight: 'calc(100vh - 120px)', // Leave space for header/footer
-    zIndex: 1000,
+    maxWidth: 'calc(100% - 40px)', // Use relative sizing
+    maxHeight: 'calc(100% - 40px)', // Use relative sizing
+    zIndex: 10,
 }));
 
 const MainActionsGroup = styled(ButtonGroup)(() => ({

@@ -88,23 +88,19 @@ export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
     // Calculate ship validation status for action buttons
     const validation = ship.validateStructuralIntegrity();
     const canTest = validation.isValid;
-    const hasBlocks = ship.blocks.size > 0;
-
-    return (
+    const hasBlocks = ship.blocks.size > 0; return (
         <Box
             sx={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
+                position: 'absolute',
+                inset: 0, // Shorthand for top, right, bottom, left = 0
                 pointerEvents: 'none', // Allow clicks to pass through to PIXI canvas
-                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
                 '& > *': {
                     pointerEvents: 'auto', // Re-enable pointer events for child components
                 },
             }}
-        >            {/* Block Palette - Left Side */}
+        >{/* Block Palette - Left Side */}
             <MuiBlockPalette
                 selectedBlockType={selectedBlockType}
                 onBlockSelect={onBlockTypeSelect}

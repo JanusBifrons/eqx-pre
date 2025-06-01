@@ -32,17 +32,16 @@ interface InstructionsPanelProps {
 }
 
 const InstructionsContainer = styled(Card)(() => ({
-    position: 'fixed',
+    position: 'absolute',
     bottom: 20,
     left: 20,
     width: 320,
-    maxWidth: 'calc(100vw - 40px)', // Prevent overflow
-    maxHeight: 'calc(100vh - 120px)', // Leave space for header/footer
-    backgroundColor: alpha(spaceColors.background.paper, 0.95),
-    backdropFilter: 'blur(10px)',
+    maxWidth: 'calc(100% - 40px)', // Use relative sizing
+    maxHeight: 'calc(100% - 40px)', // Use relative sizing
+    backgroundColor: alpha(spaceColors.background.paper, 0.95), backdropFilter: 'blur(10px)',
     border: `2px solid ${alpha(spaceColors.primary.main, 0.3)}`,
     borderRadius: '12px',
-    zIndex: 1000,
+    zIndex: 10,
     overflow: 'hidden',
 }));
 
