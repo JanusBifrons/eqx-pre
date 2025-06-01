@@ -65,10 +65,15 @@ export class ShipBuilderDemo {
             snapToGrid: true,
             showGrid: false,  // Grid is now disabled to resolve mouse tracking issues
             showConnectionPoints: true
+        });        // Ensure proper sizing for the current screen
+        this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height);
+
+        // Register resize callback to keep ship builder UI synchronized
+        renderingEngine.addResizeCallback((width, height) => {
+            this.shipBuilder.resize(width, height);
         });
 
-        // Ensure proper sizing for the current screen
-        this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height); this.setupDemo();
+        this.setupDemo();
     } private setupDemo(): void {
         // Don't create demo ship automatically - let user create it manually
         // This prevents unnecessary physics collisions when ship builder loads

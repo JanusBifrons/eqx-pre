@@ -35,6 +35,7 @@ export class RenderingEngine {
     private camera: CameraState;
     private debugOptions: DebugOptions;
     private resizeObserver?: ResizeObserver;
+    private resizeCallbacks: Array<(width: number, height: number) => void> = [];
 
     // Camera control state
     private isDragging = false;
@@ -451,7 +452,28 @@ export class RenderingEngine {
         // Update debug visuals to match new size
         this.updateDebugVisuals();
 
+        // Notify all registered resize callbacks
+        this.resizeCallbacks.forEach(callback => {
+            try {
+                callback(width, height);
+            } catch (error) {
+                console.error('Error in resize callback:', error);
+            }
+        });
+
         console.log(`📐 Canvas resized to: ${width}x${height}`);
+    }
+
+    // Resize callback management
+    public addResizeCallback(callback: (width: number, height: number) => void): void {
+        this.resizeCallbacks.push(callback);
+    }
+
+    public removeResizeCallback(callback: (width: number, height: number) => void): void {
+        const index = this.resizeCallbacks.indexOf(callback);
+        if (index > -1) {
+            this.resizeCallbacks.splice(index, 1);
+        }
     }
 
     // Public accessors

@@ -178,28 +178,10 @@ export class Application implements IApplication {
         serviceContainer.register('application', this);
         serviceContainer.register('gameLoop', this.gameLoop);
         serviceContainer.register('config', this.config);
-    }
-
-    private setupEventListeners(): void {
-        // Handle window resize
-        window.addEventListener('resize', this.handleResize);
-
+    } private setupEventListeners(): void {
         // Handle visibility change for pause/resume
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    }
-
-    private handleResize = (): void => {
-        if (!this.pixiApp) return;
-
-        const newWidth = window.innerWidth;
-        const newHeight = window.innerHeight;
-
-        this.pixiApp.renderer.resize(newWidth, newHeight);
-        this.config.width = newWidth;
-        this.config.height = newHeight;
-    };
-
-    private handleVisibilityChange = (): void => {
+    } private handleVisibilityChange = (): void => {
         if (document.hidden) {
             if (this.gameState === GameState.RUNNING) {
                 this.pause();
@@ -209,10 +191,7 @@ export class Application implements IApplication {
                 this.resume();
             }
         }
-    };
-
-    private cleanup(): void {
-        window.removeEventListener('resize', this.handleResize);
+    }; private cleanup(): void {
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     }
 }
