@@ -32,10 +32,10 @@ export class RenderingEngine {
     private uiContainer: Container;
     private debugContainer: Container;
     private config: Required<RenderingEngineConfig>;
-    private camera: CameraState;
-    private debugOptions: DebugOptions;
+    private camera: CameraState; private debugOptions: DebugOptions;
     private resizeObserver?: ResizeObserver;
     private resizeCallbacks: Array<(width: number, height: number) => void> = [];
+    private resizeTimeout?: NodeJS.Timeout;
 
     // Camera control state
     private isDragging = false;
@@ -88,10 +88,26 @@ export class RenderingEngine {
             throw error;
         }
     } private async createPixiApplication(): Promise<void> {
-        // Calculate container size
+        // Ensure container has layout before measuring
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        // Calculate container size with fallbacks
         const containerRect = this.domContainer.getBoundingClientRect();
-        const width = Math.max(containerRect.width || window.innerWidth, 1);
-        const height = Math.max(containerRect.height || window.innerHeight, 1);
+        let width = containerRect.width;
+        let height = containerRect.height;
+
+        // If container doesn't have size yet, use computed style or window size
+        if (width === 0 || height === 0) {
+            const computedStyle = window.getComputedStyle(this.domContainer);
+            width = parseFloat(computedStyle.width) || window.innerWidth;
+            height = parseFloat(computedStyle.height) || window.innerHeight;
+        }
+
+        // Ensure minimum size
+        width = Math.max(width, 1);
+        height = Math.max(height, 1);
+
+        console.log(`🎨 Creating canvas with dimensions: ${width}x${height}`);
 
         this.pixiApp = new PixiApplication({
             width,
@@ -100,21 +116,25 @@ export class RenderingEngine {
             antialias: this.config.antialias,
             resolution: this.config.resolution,
             autoDensity: true,
-        });
-
-        // Clear container and add canvas
+        });// Clear container and add canvas
         this.domContainer.innerHTML = '';
         this.domContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);
 
-        // Set canvas to proper display without scaling
+        // Set canvas to fill container exactly without any scaling or distortion
         const canvas = this.pixiApp.view as HTMLCanvasElement;
         canvas.style.display = 'block';
-        canvas.style.maxWidth = '100%';
-        canvas.style.maxHeight = '100%';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.margin = '0';
+        canvas.style.padding = '0';
+        canvas.style.border = 'none';
+        canvas.style.outline = 'none';
 
         // Prevent scrolling and ensure proper positioning
         this.domContainer.style.overflow = 'hidden';
         this.domContainer.style.position = 'relative';
+        this.domContainer.style.width = '100%';
+        this.domContainer.style.height = '100%';
 
         console.log(`🎨 Canvas initialized: ${width}x${height} (resolution: ${this.config.resolution})`);
     } private setupContainers(): void {
@@ -192,16 +212,33 @@ export class RenderingEngine {
         const mouseY = event.offsetY || event.layerY;
 
         this.zoomCamera(zoomDelta, mouseX, mouseY);
-    }
-
-    private setupResizeHandling(): void {
+    } private setupResizeHandling(): void {
         if (!this.pixiApp) return;
 
-        // Use ResizeObserver for better performance
+        // Use ResizeObserver for better performance and more accurate resize detection
         this.resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                const { width, height } = entry.contentRect;
-                this.resize(width, height);
+                // Use content box size for more accurate dimensions
+                let width: number, height: number;
+
+                if (entry.contentBoxSize && entry.contentBoxSize.length > 0) {
+                    // Modern browsers with contentBoxSize support
+                    width = entry.contentBoxSize[0].inlineSize;
+                    height = entry.contentBoxSize[0].blockSize;
+                } else {
+                    // Fallback for older browsers
+                    width = entry.contentRect.width;
+                    height = entry.contentRect.height;
+                }
+
+                // Debounce resize calls to avoid excessive updates
+                if (this.resizeTimeout) {
+                    clearTimeout(this.resizeTimeout);
+                }
+
+                this.resizeTimeout = setTimeout(() => {
+                    this.resize(width, height);
+                }, 16); // ~60fps
             }
         });
 
@@ -366,8 +403,22 @@ export class RenderingEngine {
     } private resize(width: number, height: number): void {
         if (!this.pixiApp || width <= 0 || height <= 0) return;
 
+        // Round dimensions to avoid sub-pixel issues
+        const roundedWidth = Math.round(width);
+        const roundedHeight = Math.round(height);
+
+        // Only resize if dimensions actually changed
+        if (this.pixiApp.screen.width === roundedWidth && this.pixiApp.screen.height === roundedHeight) {
+            return;
+        }
+
         // Resize the renderer to match container dimensions
-        this.pixiApp.renderer.resize(width, height);
+        this.pixiApp.renderer.resize(roundedWidth, roundedHeight);
+
+        // Ensure canvas maintains proper styling after resize
+        const canvas = this.pixiApp.view as HTMLCanvasElement;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
 
         // Update camera transform to maintain proper positioning
         this.updateCameraTransform();
@@ -378,13 +429,13 @@ export class RenderingEngine {
         // Notify all registered resize callbacks
         this.resizeCallbacks.forEach(callback => {
             try {
-                callback(width, height);
+                callback(roundedWidth, roundedHeight);
             } catch (error) {
                 console.error('Error in resize callback:', error);
             }
         });
 
-        console.log(`📐 Canvas resized to: ${width}x${height}`);
+        console.log(`📐 Canvas resized to: ${roundedWidth}x${roundedHeight}`);
     }
 
     // Resize callback management
@@ -489,9 +540,13 @@ export class RenderingEngine {
             resolution: this.config.resolution,
             fps: Math.round(this.pixiApp.ticker.FPS)
         };
-    }
+    } public destroy(): void {
+        // Clean up resize timeout
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = undefined;
+        }
 
-    public destroy(): void {
         this.resizeObserver?.disconnect();
 
         if (this.pixiApp) {
