@@ -8,7 +8,7 @@ import { serviceContainer } from '@/core/ServiceContainer';
  * Provides a clean interface for React components to interact with the PIXI.js ship builder
  */
 export class ShipBuilderAdapter extends EventEmitter {
-    private shipBuilder: ShipBuilderRefactored | null = null;    /**
+    private shipBuilder: ShipBuilderRefactored | null = null;/**
      * Initialize the adapter with a PIXI.js ShipBuilder instance
      */
     setShipBuilder(shipBuilder: ShipBuilderRefactored): void {

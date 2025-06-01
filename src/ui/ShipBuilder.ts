@@ -28,17 +28,19 @@ export class ShipBuilder {
     private selectedBlockType: string | null = null;
     private selectedButton: Container | null = null;
     private options: BuilderOptions;
-    private isBuilding: boolean = true;
-
-    // Camera/viewport system
+    private isBuilding: boolean = true;    // Camera/viewport system
     private worldContainer: Container;
-    private camera: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 1 };
+    private camera: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 0.25 };
     private isDragging: boolean = false;
-    private lastDragPosition: { x: number; y: number } | null = null;
-    private panSpeed: number = 1;
+    private lastDragPosition: { x: number; y: number } | null = null; private panSpeed: number = 1;
     private zoomSpeed: number = 0.1;
-    private minZoom: number = 0.5;
-    private maxZoom: number = 3;    // UI elements - now handled by MUI components
+    private minZoom: number = 0.1;
+    private maxZoom: number = 3;    // Cursor management
+    private currentCursor: string = 'default';
+
+    // Callback system for MUI integration
+    private onShipChanged: (() => void) | null = null;
+    private onBlockDeselected: (() => void) | null = null;// UI elements - now handled by MUI components
     // Legacy UI elements removed - replaced by MUI components
 
     constructor(container: Container, options: Partial<BuilderOptions> = {}) {
@@ -162,19 +164,18 @@ export class ShipBuilder {
             bg.beginFill(0x004488, 0.9);
             bg.lineStyle(3, 0x00AAFF);
             bg.drawRect(0, 0, 180, 50); bg.endFill();
-        }
-
-        // Remove existing preview
+        }        // Remove existing preview
         if (this.previewBlock) {
             this.previewBlock.destroy();
             this.previewBlock = null;
         }        // Create new preview block
         this.recreatePreviewBlock();
 
-        console.log(`Selected block type: ${blockId}`);
-    }
+        // Update cursor when block is selected
+        this.updateCursor();
 
-    public deselectBlockType(): void {
+        console.log(`Selected block type: ${blockId}`);
+    } public deselectBlockType(): void {
         // Clear the selected block type
         this.selectedBlockType = null;
 
@@ -193,6 +194,12 @@ export class ShipBuilder {
         if (this.previewBlock) {
             this.previewBlock.destroy();
             this.previewBlock = null;
+        }        // Update cursor to pan mode when no block is selected
+        this.updateCursor();
+
+        // Notify external systems that block was deselected
+        if (this.onBlockDeselected) {
+            this.onBlockDeselected();
         }
 
         console.log('Block type deselected');
@@ -293,10 +300,19 @@ export class ShipBuilder {
     } private onPointerDown(event: FederatedPointerEvent): void {
         const localPosition = event.data.getLocalPosition(this.container);
 
+        // If no block selected, left click should start panning
+        if (!this.selectedBlockType && event.data.button === 0) {
+            this.isDragging = true;
+            this.lastDragPosition = { x: localPosition.x, y: localPosition.y };
+            this.container.cursor = 'grabbing';
+            return;
+        }
+
         // Check for camera panning (middle mouse button or right mouse with shift)
         if (event.data.button === 1 || (event.data.button === 2 && event.shiftKey)) {
             this.isDragging = true;
             this.lastDragPosition = { x: localPosition.x, y: localPosition.y };
+            this.container.cursor = 'grabbing';
             return;
         }
 
@@ -486,11 +502,10 @@ export class ShipBuilder {
                 graphics.lineTo(endX, endY);
             }
         }
-    }
-
-    private onPointerUp(_event: FederatedPointerEvent): void {
+    } private onPointerUp(_event: FederatedPointerEvent): void {
         this.isDragging = false;
         this.lastDragPosition = null;
+        this.updateCursor(); // Reset cursor to appropriate state
     }
 
     private onWheel(event: any): void {
@@ -853,9 +868,14 @@ export class ShipBuilder {
 
         console.log(`🔧 REPAIR SUMMARY: ${repairsSuccessful}/${repairsAttempted} repairs successful`);
         this.updateStats();
-    } private updateStats(): void {
-        // Stats update now handled by MUI components - method stubbed out
-        console.log("Canvas stats update skipped - using MUI components");
+    }    private updateStats(): void {
+        // Stats are now handled by MUI components through callbacks
+        console.log('Ship stats updated (notifying MUI components)');
+
+        // Notify external systems that ship has changed
+        if (this.onShipChanged) {
+            this.onShipChanged();
+        }
     }
 
     /**
@@ -955,15 +975,20 @@ export class ShipBuilder {
         if (this.previewBlock) {
             this.previewBlock.destroy();
         } this.container.destroy({ children: true });
-    }
-
-    public resize(screenWidth: number, screenHeight: number): void {
+    }    public resize(screenWidth: number, screenHeight: number): void {
         // Update container size
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
+        // Center the camera initially if it's at the default (0,0) position
+        if (this.camera.x === 0 && this.camera.y === 0) {
+            this.camera.x = screenWidth / 2;
+            this.camera.y = screenHeight / 2;
+            this.updateCameraTransform();
+        }
+
         // UI layout now handled by MUI components
-        console.log(`Canvas resized to: ${screenWidth}x${screenHeight}`);
+        console.log(`Canvas resized to: ${screenWidth}x${screenHeight}, camera centered at (${this.camera.x}, ${this.camera.y})`);
     }
 
     // Camera system methods
@@ -991,10 +1016,11 @@ export class ShipBuilder {
         }
 
         this.updateCameraTransform();
-    } private resetCamera(): void {
-        this.camera.x = 0;
-        this.camera.y = 0;
-        this.camera.zoom = 1;
+    }    private resetCamera(): void {
+        // Center the camera on the screen
+        this.camera.x = this.container.width / 2;
+        this.camera.y = this.container.height / 2;
+        this.camera.zoom = 0.25;
         this.updateCameraTransform();
     }
 
@@ -1117,10 +1143,137 @@ export class ShipBuilder {
         debugGraphics.moveTo(-50, 0);
         debugGraphics.lineTo(50, 0);
         debugGraphics.moveTo(0, -50);
-        debugGraphics.lineTo(0, 50);
-
-        this.container.addChild(debugGraphics);
+        debugGraphics.lineTo(0, 50); this.container.addChild(debugGraphics);
 
         console.log('🔍 Debug visualization added - red border shows screen bounds');
+    }
+
+    /**
+     * Update cursor based on current state
+     */
+    private updateCursor(): void {
+        if (this.isDragging) {
+            this.setCursor('grabbing');
+        } else if (!this.selectedBlockType) {
+            // Pan mode when no block is selected
+            this.setCursor('grab');
+        } else {
+            this.setCursor('default');
+        }
+    }    /**
+     * Set the cursor style for the container
+     */
+    private setCursor(cursor: string): void {
+        if (this.currentCursor !== cursor) {
+            this.currentCursor = cursor;
+            if (this.container.eventMode) {
+                this.container.cursor = cursor;
+            }
+        }
+    }    // Callback system for MUI integration
+    public setOnShipChanged(callback: (() => void) | null): void {
+        this.onShipChanged = callback;
+    }
+
+    public setOnBlockDeselected(callback: (() => void) | null): void {
+        this.onBlockDeselected = callback;
+    }
+
+    // Camera control methods for MUI integration
+    public zoomIn(): void {
+        this.zoomCamera(this.zoomSpeed);
+    }
+
+    public zoomOut(): void {
+        this.zoomCamera(-this.zoomSpeed);
+    }
+
+    public centerOnShip(): void {
+        // Center camera on the ship's center of mass
+        const ship = this.getShip();
+        if (ship.blocks.size > 0) {
+            const blocks = Array.from(ship.blocks.values());
+            let totalX = 0;
+            let totalY = 0;
+            
+            for (const block of blocks) {
+                totalX += block.gridPosition.x;
+                totalY += block.gridPosition.y;
+            }
+            
+            const centerX = totalX / blocks.length;
+            const centerY = totalY / blocks.length;
+            
+            // Convert world position to screen position and center camera
+            this.camera.x = this.container.width / 2 - centerX * this.camera.zoom;
+            this.camera.y = this.container.height / 2 - centerY * this.camera.zoom;
+            this.updateCameraTransform();
+        }
+    }
+
+    public resetZoom(): void {
+        this.resetCamera();
+    }
+
+    // Mode control methods for MUI integration
+    public setBuildingMode(isBuilding: boolean): void {
+        this.isBuilding = isBuilding;
+    }
+
+    public isBuildingMode(): boolean {
+        return this.isBuilding;
+    }
+
+    // Grid and visualization control methods for MUI integration
+    public toggleGrid(): void {
+        this.options.showGrid = !this.options.showGrid;
+        // Grid is disabled in legacy builder, but keep method for compatibility
+        console.log(`Grid toggled: ${this.options.showGrid} (visual grid disabled in legacy builder)`);
+    }
+
+    public toggleConnectionPoints(): void {
+        this.options.showConnectionPoints = !this.options.showConnectionPoints;
+        // Update all blocks to show/hide connection points
+        for (const block of this.ship.blocks.values()) {
+            if (block.updateConnectionPointsVisibility) {
+                block.updateConnectionPointsVisibility(this.options.showConnectionPoints);
+            }
+        }
+    }
+
+    public setShowGrid(show: boolean): void {
+        this.options.showGrid = show;
+        console.log(`Grid visibility set: ${show} (visual grid disabled in legacy builder)`);
+    }
+
+    public setShowConnectionPoints(show: boolean): void {
+        this.options.showConnectionPoints = show;
+        this.toggleConnectionPoints();
+    }
+
+    public setSnapToGrid(snap: boolean): void {
+        this.options.snapToGrid = snap;
+    }    public setZoom(zoom: number): void {
+        this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoom));
+        this.updateCameraTransform();
+    }
+
+    // Debug methods for MUI integration
+    public setDebugVisualization(enabled: boolean): void {
+        this.options.enableDebugVisualization = enabled;
+        // Toggle debug visualization
+        if (enabled) {
+            this.addDebugVisualization();
+        } else {
+            // Remove debug visualization if it exists
+            const debugChild = this.worldContainer.children.find(child => child.name === 'debug-visualization');
+            if (debugChild) {
+                this.worldContainer.removeChild(debugChild);
+            }
+        }
+    }
+
+    public getDebugVisualization(): boolean {
+        return this.options.enableDebugVisualization || false;
     }
 }

@@ -7,6 +7,8 @@ export class InputHandler extends BaseUIComponent {
     private isDragging: boolean = false;
     private lastDragPosition: { x: number; y: number } | null = null;
     private zoomSpeed: number = 0.1;
+    private isPanMode: boolean = false;
+    private currentCursor: string = 'default';
 
     constructor(container: Container, camera: ICamera) {
         super(container);
@@ -88,13 +90,16 @@ export class InputHandler extends BaseUIComponent {
                     break;
             }
         });
-    }
-
-    private onPointerMove(event: FederatedPointerEvent): void {
+    } private onPointerMove(event: FederatedPointerEvent): void {
         const localPosition = event.data.getLocalPosition(this.container);
+
+        // Update cursor based on mode
+        this.updateCursor();
 
         // Handle camera dragging
         if (this.isDragging && this.lastDragPosition) {
+            // Show grabbing cursor when actively dragging
+            this.setCursor('grabbing');
             const deltaX = localPosition.x - this.lastDragPosition.x;
             const deltaY = localPosition.y - this.lastDragPosition.y;
             this.camera.pan(deltaX, deltaY);
@@ -105,15 +110,22 @@ export class InputHandler extends BaseUIComponent {
         // Emit mouse move event for other components
         const worldPosition = this.camera.screenToWorld(localPosition);
         this.emit('mouseMove', worldPosition, localPosition);
-    }
-
-    private onPointerDown(event: FederatedPointerEvent): void {
+    } private onPointerDown(event: FederatedPointerEvent): void {
         const localPosition = event.data.getLocalPosition(this.container);
+
+        // In pan mode, left click should start panning
+        if (this.isPanMode && event.data.button === 0) {
+            this.isDragging = true;
+            this.lastDragPosition = { x: localPosition.x, y: localPosition.y };
+            this.setCursor('grabbing');
+            return;
+        }
 
         // Check for camera panning (middle mouse button or right mouse with shift)
         if (event.data.button === 1 || (event.data.button === 2 && event.shiftKey)) {
             this.isDragging = true;
             this.lastDragPosition = { x: localPosition.x, y: localPosition.y };
+            this.setCursor('grabbing');
             return;
         }
 
@@ -123,8 +135,8 @@ export class InputHandler extends BaseUIComponent {
             return;
         }
 
-        // Left-click events
-        if (event.data.button === 0) {
+        // Left-click events (only if not in pan mode)
+        if (event.data.button === 0 && !this.isPanMode) {
             const worldPosition = this.camera.screenToWorld(localPosition);
             this.emit('leftClick', worldPosition, localPosition);
         }
@@ -133,6 +145,7 @@ export class InputHandler extends BaseUIComponent {
     private onPointerUp(_event: FederatedPointerEvent): void {
         this.isDragging = false;
         this.lastDragPosition = null;
+        this.updateCursor(); // Reset cursor to appropriate state
     }
 
     private onWheel(event: any): void {
@@ -140,9 +153,47 @@ export class InputHandler extends BaseUIComponent {
         const localPosition = event.data.getLocalPosition(this.container);
         const zoomDelta = -event.deltaY * this.zoomSpeed * 0.01;
         this.camera.zoomTo(zoomDelta, localPosition.x, localPosition.y);
+    } resize(_width: number, _height: number): void {
+        // Input handler doesn't need resize handling
     }
 
-    resize(_width: number, _height: number): void {
-        // Input handler doesn't need resize handling
+    /**
+     * Set pan mode - when true, left click drags the camera
+     */
+    setPanMode(isPanMode: boolean): void {
+        this.isPanMode = isPanMode;
+        this.updateCursor();
+    }
+
+    /**
+     * Get current pan mode state
+     */
+    getPanMode(): boolean {
+        return this.isPanMode;
+    }
+
+    /**
+     * Update cursor based on current state
+     */
+    private updateCursor(): void {
+        if (this.isDragging) {
+            this.setCursor('grabbing');
+        } else if (this.isPanMode) {
+            this.setCursor('grab');
+        } else {
+            this.setCursor('default');
+        }
+    }
+
+    /**
+     * Set the cursor style for the container
+     */
+    private setCursor(cursor: string): void {
+        if (this.currentCursor !== cursor) {
+            this.currentCursor = cursor;
+            if (this.container.eventMode) {
+                this.container.cursor = cursor;
+            }
+        }
     }
 }

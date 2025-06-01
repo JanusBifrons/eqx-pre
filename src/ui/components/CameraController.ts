@@ -4,11 +4,11 @@ import { Container } from 'pixi.js';
 export class CameraController implements ICamera {
     public x: number = 0;
     public y: number = 0;
-    public zoom: number = 1;
+    public zoom: number = 0.25; // Default to much more zoomed out view
 
     private worldContainer: Container;
     private panSpeed: number = 1;
-    private minZoom: number = 0.5;
+    private minZoom: number = 0.1; // Allow zooming out much further
     private maxZoom: number = 3;
 
     constructor(worldContainer: Container) {
@@ -32,12 +32,10 @@ export class CameraController implements ICamera {
         }
 
         this.updateTransform();
-    }
-
-    reset(): void {
+    }    reset(): void {
         this.x = 0;
         this.y = 0;
-        this.zoom = 1;
+        this.zoom = 0.25; // Reset to default much more zoomed out view
         this.updateTransform();
     }
 

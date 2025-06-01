@@ -70,6 +70,9 @@ export class ShipBuilderRefactored {
         this.setupEventHandlers();
         this.setupDebugVisualization();
 
+        // Start in pan mode since no block is selected initially
+        this.inputHandler.setPanMode(true);
+
         // Initial resize
         this.resize(1600, 1000);
     }
@@ -122,11 +125,14 @@ export class ShipBuilderRefactored {
         if (this.options.enableDebugVisualization) {
             this.addDebugVisualization();
         }
-    }    public selectBlockType(blockType: string): void {
+    } public selectBlockType(blockType: string): void {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
-        
+
+        // Exit pan mode when a block is selected
+        this.inputHandler.setPanMode(false);
+
         // If we have a last mouse position, immediately update the preview position
         if (this.lastMousePosition && this.isBuilding) {
             const definition = BlockDefinitions.get(blockType);
@@ -141,19 +147,24 @@ export class ShipBuilderRefactored {
                 this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
             }
         }
-    }public deselectBlockType(): void {
+    }
+
+    public deselectBlockType(): void {
         this.selectedBlockType = null;
         this.blockPreview.hidePreview();
         console.log('Block type deselected');
+
+        // Enter pan mode when no block is selected
+        this.inputHandler.setPanMode(true);
 
         // Notify external systems
         if (this.onBlockDeselected) {
             this.onBlockDeselected();
         }
-    }    private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
+    } private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
         // Track the last mouse position for when we switch block types
         this.lastMousePosition = worldPos;
-        
+
         if (!this.selectedBlockType || !this.isBuilding) return;
 
         const definition = BlockDefinitions.get(this.selectedBlockType);
@@ -170,7 +181,7 @@ export class ShipBuilderRefactored {
 
         // Update preview
         this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
-    }private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
+    } private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
         if (!this.selectedBlockType || !this.isBuilding) {
             // If clicking in building area without selection, potentially deselect
             if (this.selectedBlockType && this.isInBuildingArea(worldPos)) {

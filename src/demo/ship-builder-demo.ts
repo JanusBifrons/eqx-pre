@@ -37,16 +37,12 @@ export class ShipBuilderDemo {
 
     private async initialize(): Promise<void> {
         // Start the application (this registers services)
-        await this.application.start();
-
-        // Get the rendering engine for advanced features
-        const renderingEngine = this.application.getRenderingEngine();
-
-        // Set camera for ship builder (zoomed in for detailed work)
+        await this.application.start();        // Get the rendering engine for advanced features
+        const renderingEngine = this.application.getRenderingEngine();        // Set camera for ship builder (much more zoomed out for better overview)
         renderingEngine.setCamera({
             x: 0,
             y: 0,
-            zoom: 1.2
+            zoom: 0.25
         });
 
         // Now we can create EntityManager since application service is registered

@@ -12,7 +12,7 @@ export class BlockPreview extends BaseUIComponent {
         super();
         this.worldContainer = worldContainer;
         this.indicator = new Graphics();
-    }    public showPreview(blockType: string): void {
+    } public showPreview(blockType: string): void {
         console.log(`🔄 BlockPreview: showPreview(${blockType})`);
         this.hidePreview();
 
@@ -47,14 +47,14 @@ export class BlockPreview extends BaseUIComponent {
         } else {
             console.warn(`❌ BlockPreview: No definition found for ${blockType}`);
         }
-    }    public hidePreview(): void {
+    } public hidePreview(): void {
         if (this.previewBlock) {
             this.previewBlock.destroy();
             this.previewBlock = null;
         }
         // Clear indicator reference since it gets destroyed with the preview block
         this.indicator = new Graphics();
-    }public refreshPreview(blockType: string): void {
+    } public refreshPreview(blockType: string): void {
         // Refresh the preview to ensure it's in a clean state        // Always recreate the preview to handle any state inconsistencies
         this.showPreview(blockType);
     }
@@ -66,7 +66,7 @@ export class BlockPreview extends BaseUIComponent {
         }
 
         console.log(`🔄 BlockPreview: updatePosition(${x.toFixed(1)}, ${y.toFixed(1)}, valid=${isValid})`);
-        
+
         this.previewBlock.setGridPosition({ x, y });
         this.previewBlock.container.x = x;
         this.previewBlock.container.y = y;
