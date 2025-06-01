@@ -12,9 +12,8 @@ export class BlockPreview extends BaseUIComponent {
         super();
         this.worldContainer = worldContainer;
         this.indicator = new Graphics();
-    }
-
-    public showPreview(blockType: string): void {
+    }    public showPreview(blockType: string): void {
+        console.log(`🔄 BlockPreview: showPreview(${blockType})`);
         this.hidePreview();
 
         const definition = BlockDefinitions.get(blockType);
@@ -24,8 +23,8 @@ export class BlockPreview extends BaseUIComponent {
             this.previewBlock = new Block(definition, properties);
             this.previewBlock.container.alpha = 0.5;
 
-            // Create placement indicator
-            this.indicator.clear();
+            // Create a new placement indicator for this preview
+            this.indicator = new Graphics();
             this.indicator.lineStyle(2, 0x33FF33, 0.8);
 
             if (definition.shape === 'circle') {
@@ -44,19 +43,30 @@ export class BlockPreview extends BaseUIComponent {
             this.previewBlock.container.y = -10000;
 
             this.worldContainer.addChild(this.previewBlock.container);
+            console.log(`✅ BlockPreview: preview created for ${blockType}, container added to world`);
+        } else {
+            console.warn(`❌ BlockPreview: No definition found for ${blockType}`);
         }
-    }
-
-    public hidePreview(): void {
+    }    public hidePreview(): void {
         if (this.previewBlock) {
             this.previewBlock.destroy();
             this.previewBlock = null;
         }
+        // Clear indicator reference since it gets destroyed with the preview block
+        this.indicator = new Graphics();
+    }public refreshPreview(blockType: string): void {
+        // Refresh the preview to ensure it's in a clean state        // Always recreate the preview to handle any state inconsistencies
+        this.showPreview(blockType);
     }
 
     public updatePosition(x: number, y: number, isValid: boolean, isWithinBounds: boolean, isOccupied: boolean): void {
-        if (!this.previewBlock) return;
+        if (!this.previewBlock) {
+            console.warn(`❌ BlockPreview: updatePosition called but no preview block exists`);
+            return;
+        }
 
+        console.log(`🔄 BlockPreview: updatePosition(${x.toFixed(1)}, ${y.toFixed(1)}, valid=${isValid})`);
+        
         this.previewBlock.setGridPosition({ x, y });
         this.previewBlock.container.x = x;
         this.previewBlock.container.y = y;
@@ -80,9 +90,13 @@ export class BlockPreview extends BaseUIComponent {
     }
 
     private updateIndicatorColor(color: number): void {
-        if (!this.previewBlock) return;
+        if (!this.previewBlock || !this.indicator) {
+            console.warn('❌ BlockPreview: updateIndicatorColor called but previewBlock or indicator is null');
+            return;
+        }
 
-        const definition = BlockDefinitions.get(this.previewBlock.definition.type);
+        // Use the definition directly from the preview block instead of looking it up
+        const definition = this.previewBlock.definition;
         if (!definition) return;
 
         this.indicator.clear();

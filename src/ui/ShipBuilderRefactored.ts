@@ -40,10 +40,13 @@ export class ShipBuilderRefactored {
     private camera!: CameraController;
     private inputHandler!: InputHandler;
     private blockPlacer!: BlockPlacer;    // UI Components (only PIXI.js rendering components remain)
-    private blockPreview!: BlockPreview;
-
-    // State
+    private blockPreview!: BlockPreview;    // State
     private selectedBlockType: string | null = null;
+    private lastMousePosition: Vector | null = null;
+
+    // Callback for notifying external systems of changes
+    private onShipChanged: (() => void) | null = null;
+    private onBlockDeselected: (() => void) | null = null;
 
     constructor(container: Container, options: Partial<BuilderOptions> = {}) {
         this.container = container;
@@ -119,19 +122,38 @@ export class ShipBuilderRefactored {
         if (this.options.enableDebugVisualization) {
             this.addDebugVisualization();
         }
-    }
-
-    public selectBlockType(blockType: string): void {
+    }    public selectBlockType(blockType: string): void {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
-    } public deselectBlockType(): void {
+        
+        // If we have a last mouse position, immediately update the preview position
+        if (this.lastMousePosition && this.isBuilding) {
+            const definition = BlockDefinitions.get(blockType);
+            if (definition) {
+                const finalPos = this.options.snapToGrid ?
+                    this.blockPlacer.snapToGrid(this.lastMousePosition, definition) : this.lastMousePosition;
+
+                const isValid = this.blockPlacer.canPlaceBlock(finalPos, blockType);
+                const isWithinBounds = this.isPositionWithinBounds(finalPos, definition);
+                const isOccupied = this.isPositionOccupied(finalPos, definition);
+
+                this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
+            }
+        }
+    }public deselectBlockType(): void {
         this.selectedBlockType = null;
         this.blockPreview.hidePreview();
         console.log('Block type deselected');
-    }
 
-    private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
+        // Notify external systems
+        if (this.onBlockDeselected) {
+            this.onBlockDeselected();
+        }
+    }    private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
+        // Track the last mouse position for when we switch block types
+        this.lastMousePosition = worldPos;
+        
         if (!this.selectedBlockType || !this.isBuilding) return;
 
         const definition = BlockDefinitions.get(this.selectedBlockType);
@@ -148,9 +170,7 @@ export class ShipBuilderRefactored {
 
         // Update preview
         this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
-    }
-
-    private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
+    }private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
         if (!this.selectedBlockType || !this.isBuilding) {
             // If clicking in building area without selection, potentially deselect
             if (this.selectedBlockType && this.isInBuildingArea(worldPos)) {
@@ -164,12 +184,15 @@ export class ShipBuilderRefactored {
             this.blockPlacer.snapToGrid(worldPos, definition) : worldPos;
 
         // Attempt to place block
-        const success = this.blockPlacer.placeBlock(finalPos, this.selectedBlockType);
-
-        if (success) {
+        const success = this.blockPlacer.placeBlock(finalPos, this.selectedBlockType); if (success) {
             console.log(`Block placed at (${finalPos.x}, ${finalPos.y})`);
+
+            // Keep the block type selected for continuous building
+            // Refresh the preview to ensure it continues working
+            this.blockPreview.refreshPreview(this.selectedBlockType);
+
+            // Trigger UI update - this will be handled by the adapter
             this.updateStats();
-            this.blockPreview.showPreview(this.selectedBlockType); // Recreate preview
         } else {
             console.log(`Cannot place block at (${finalPos.x}, ${finalPos.y})`);
         }
@@ -182,6 +205,11 @@ export class ShipBuilderRefactored {
     } private updateStats(): void {
         // Stats are now handled by MUI components through the adapter
         console.log('Ship stats updated (handled by MUI adapter)');
+
+        // Notify external systems that ship has changed
+        if (this.onShipChanged) {
+            this.onShipChanged();
+        }
     } public testShip(): void {
         const validation = this.ship.validateStructuralIntegrity();
 
@@ -612,5 +640,14 @@ export class ShipBuilderRefactored {
 
     public getDebugVisualization(): boolean {
         return this.options.enableDebugVisualization || false;
+    }
+
+    // Callback setter methods for external integration
+    public setOnShipChanged(callback: (() => void) | null): void {
+        this.onShipChanged = callback;
+    }
+
+    public setOnBlockDeselected(callback: (() => void) | null): void {
+        this.onBlockDeselected = callback;
     }
 }

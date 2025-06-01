@@ -13,8 +13,15 @@ export class ShipBuilderAdapter extends EventEmitter {
      */
     setShipBuilder(shipBuilder: ShipBuilderRefactored): void {
         this.shipBuilder = shipBuilder;
-        // Note: Event forwarding would require ShipBuilderRefactored to extend EventEmitter
-        // For now, the adapter provides method calls without automatic event forwarding
+
+        // Register callbacks to bridge PIXI.js events to EventEmitter events
+        this.shipBuilder.setOnShipChanged(() => {
+            this.emit('shipChanged');
+        });
+
+        this.shipBuilder.setOnBlockDeselected(() => {
+            this.emit('blockDeselected');
+        });
     }
 
     /**
