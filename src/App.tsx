@@ -1,6 +1,6 @@
-import React from 'react';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
+import { MuiProvider } from './components/MuiProvider';
 import './index.css';
 
 // Create a new router instance
@@ -14,7 +14,11 @@ declare module '@tanstack/react-router' {
 }
 
 function App() {
-    return <RouterProvider router={router} />;
+    return (
+        <MuiProvider>
+            <RouterProvider router={router} />
+        </MuiProvider>
+    );
 }
 
 export default App;

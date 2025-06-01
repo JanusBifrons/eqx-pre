@@ -115,6 +115,10 @@ export class Application implements IApplication {
         return this.gameState;
     }
 
+    getGameLoop(): GameLoop {
+        return this.gameLoop;
+    }
+
     private async initializeRenderingEngine(): Promise<void> {
         if (!this.domContainer) {
             // Fallback to looking for game-container element

@@ -29,9 +29,11 @@ export interface CollisionCallback {
 export class CollisionManager {
     private collisionCallbacks = new Map<string, CollisionCallback[]>();
     private entityCallbacks = new Map<string, CollisionCallback[]>();
-    private globalCallbacks: CollisionCallback[] = [];
-    private activeCollisions = new Map<string, CollisionEvent>();
-    private isInitialized = false; constructor() {
+    private globalCallbacks: CollisionCallback[] = []; private activeCollisions = new Map<string, CollisionEvent>();
+    private isInitialized = false;
+    public enableLogging = false; // Set to true to enable collision logging
+
+    constructor() {
         // Don't setup collision events in constructor to avoid circular dependency
         // Will be initialized later when PhysicsSystem calls initialize()
     }
@@ -66,18 +68,17 @@ export class CollisionManager {
         Events.on(engine, 'collisionEnd', (event: any) => {
             this.handleCollisionEvent(event, 'collisionEnd');
         });
-    } private handleCollisionEvent(event: any, type: CollisionEventType): void {
+    }
+
+    private handleCollisionEvent(event: any, type: CollisionEventType): void {
         const pairs = event.pairs.map((pair: any) => this.createCollisionPair(pair));
-        console.log(`🎯 Processing ${type} event with ${event.pairs.length} pairs`);
+        // Removed excessive logging for performance
 
         for (const pair of event.pairs) {
             const entityA = this.getEntityFromBody(pair.bodyA);
             const entityB = this.getEntityFromBody(pair.bodyB);
 
-            console.log(`🔍 Collision pair: entityA="${entityA}", entityB="${entityB}"`);
-
             if (entityA && entityB) {
-                console.log(`✅ Valid collision between ${entityA} and ${entityB}`);
                 const collisionEvent: CollisionEvent = {
                     entityA,
                     entityB,
@@ -96,13 +97,15 @@ export class CollisionManager {
                 } else if (type === 'collisionEnd') {
                     this.activeCollisions.delete(collisionKey);
                     this.updateGameStoreCollisions('remove', collisionEvent);
+                }                // Trigger callbacks
+                if (this.enableLogging) {
+                    console.log(`🔔 Triggering callbacks for ${type}`);
                 }
-
-                // Trigger callbacks
-                console.log(`🔔 Triggering callbacks for ${type}`);
                 this.triggerCallbacks(collisionEvent, type);
             } else {
-                console.log(`❌ Skipping collision - invalid entities: entityA="${entityA}", entityB="${entityB}"`);
+                if (this.enableLogging) {
+                    console.log(`❌ Skipping collision - invalid entities: entityA="${entityA}", entityB="${entityB}"`);
+                }
             }
         }
     }
@@ -146,16 +149,18 @@ export class CollisionManager {
         } else {
             store.removeCollision(this.getCollisionKey(event.entityA, event.entityB));
         }
-    }
-
-    private triggerCallbacks(event: CollisionEvent, type: CollisionEventType): void {
-        console.log(`🔔 Triggering callbacks for ${type}: ${event.entityA} <-> ${event.entityB}`);
-        console.log(`📊 Registered callbacks - Global: ${this.globalCallbacks.length}, Type: ${this.collisionCallbacks.get(type)?.length || 0}`);
+    } private triggerCallbacks(event: CollisionEvent, type: CollisionEventType): void {
+        if (this.enableLogging) {
+            console.log(`🔔 Triggering callbacks for ${type}: ${event.entityA} <-> ${event.entityB}`);
+            console.log(`📊 Registered callbacks - Global: ${this.globalCallbacks.length}, Type: ${this.collisionCallbacks.get(type)?.length || 0}`);
+        }
 
         // Global callbacks
         this.globalCallbacks.forEach(callback => {
             try {
-                console.log(`🌐 Calling global callback for ${type}`);
+                if (this.enableLogging) {
+                    console.log(`🌐 Calling global callback for ${type}`);
+                }
                 callback(event, type);
             } catch (error) {
                 console.error('Error in global collision callback:', error);
@@ -168,7 +173,9 @@ export class CollisionManager {
 
         [...entityACallbacks, ...entityBCallbacks].forEach(callback => {
             try {
-                console.log(`🎯 Calling entity callback for ${type}`);
+                if (this.enableLogging) {
+                    console.log(`🎯 Calling entity callback for ${type}`);
+                }
                 callback(event, type);
             } catch (error) {
                 console.error('Error in entity collision callback:', error);
@@ -179,7 +186,9 @@ export class CollisionManager {
         const typeCallbacks = this.collisionCallbacks.get(type) || [];
         typeCallbacks.forEach(callback => {
             try {
-                console.log(`📝 Calling type-specific callback for ${type}`);
+                if (this.enableLogging) {
+                    console.log(`📝 Calling type-specific callback for ${type}`);
+                }
                 callback(event, type);
             } catch (error) {
                 console.error('Error in type collision callback:', error);

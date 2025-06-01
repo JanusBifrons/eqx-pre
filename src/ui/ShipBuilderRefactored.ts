@@ -200,13 +200,13 @@ export class ShipBuilderRefactored {
         }
     }
 
-    private selectBlockType(blockType: string): void {
+    public selectBlockType(blockType: string): void {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
     }
 
-    private deselectBlockType(): void {
+    public deselectBlockType(): void {
         this.selectedBlockType = null;
         this.blockPalette.deselectBlock();
         this.blockPreview.hidePreview();
@@ -596,10 +596,71 @@ export class ShipBuilderRefactored {
         };
 
         return shipData;
-    }
-
-    public loadShip(_shipData: any): void {
+    } public loadShip(_shipData: any): void {
         this.clearShip();
         // Reconstruct ship from data - would need to implement
+    }    // Additional public methods for adapter integration
+
+    public getSelectedBlockType(): string | null {
+        return this.selectedBlockType;
+    }
+
+    public getCamera(): CameraController {
+        return this.camera;
+    }
+
+    public setBuildingMode(isBuilding: boolean): void {
+        this.isBuilding = isBuilding;
+    }
+
+    public isBuildingMode(): boolean {
+        return this.isBuilding;
+    }
+
+    public toggleGrid(): void {
+        this.options.showGrid = !this.options.showGrid;
+        // Implementation would need to update grid visibility
+        console.log(`Grid toggled: ${this.options.showGrid ? 'enabled' : 'disabled'}`);
+    } public toggleConnectionPoints(): void {
+        this.options.showConnectionPoints = !this.options.showConnectionPoints;
+        // Implementation would need to update connection point visibility
+        console.log(`Connection points toggled: ${this.options.showConnectionPoints ? 'enabled' : 'disabled'}`);
+    }
+
+    // Camera control methods for adapter integration
+    public zoomIn(): void {
+        this.camera.zoomTo(0.1);
+    }
+
+    public zoomOut(): void {
+        this.camera.zoomTo(-0.1);
+    } public centerOnShip(): void {
+        if (this.ship.blocks.size === 0) return;
+
+        // Calculate ship bounds
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        for (const block of this.ship.blocks.values()) {
+            const pos = block.gridPosition;
+            const def = block.definition;
+            const halfWidth = def.width / 2;
+            const halfHeight = def.height / 2;
+
+            minX = Math.min(minX, pos.x - halfWidth);
+            maxX = Math.max(maxX, pos.x + halfWidth);
+            minY = Math.min(minY, pos.y - halfHeight);
+            maxY = Math.max(maxY, pos.y + halfHeight);
+        }
+
+        // Center camera on ship bounds
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // Use pan to move camera to center position
+        this.camera.pan(-centerX - this.camera.x, -centerY - this.camera.y);
+    }
+
+    public resetZoom(): void {
+        this.camera.reset();
     }
 }

@@ -68,31 +68,34 @@ export class ShipBuilderDemo {
         });
 
         // Ensure proper sizing for the current screen
-        this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height);
+        this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height); this.setupDemo();
+    } private setupDemo(): void {
+        // Don't create demo ship automatically - let user create it manually
+        // This prevents unnecessary physics collisions when ship builder loads
+        // this.createDemoShip();
 
-        this.setupDemo();
-    }
+        // Register systems with the Application's GameLoop instead of using separate ticker
+        // This prevents duplicate update loops that cause rendering conflicts
+        const gameLoop = this.application.getGameLoop();
 
-    private setupDemo(): void {
-        // Create some demo content
-        this.createDemoShip();
-
-        // Start the game loop
-        const pixiApp = this.application.getPixiApp();
-        pixiApp.ticker.add(this.update.bind(this));
+        // Register ship builder demo system
+        gameLoop.addSystem({
+            name: 'ship-builder-demo',
+            update: (deltaTime: number) => this.update(deltaTime),
+            destroy: () => {
+                // Cleanup handled in main destroy method
+            }
+        });
 
         // Add keyboard controls
-        this.setupControls();
-
-        // Expose test methods globally for debugging
+        this.setupControls();// Expose test methods globally for debugging
         (window as any).shipBuilderDemo = {
             testConnections: () => this.shipBuilder.testConnectionSystem(),
             repairConnections: () => this.shipBuilder.repairConnections(),
             getShip: () => this.shipBuilder.getShip(),
-            clearShip: () => this.shipBuilder.clearShip()
-        };
-
-        console.log('Ship Builder Demo initialized!');
+            clearShip: () => this.shipBuilder.clearShip(),
+            createDemoShip: () => this.createDemoShip()  // Allow manual demo ship creation
+        }; console.log('Ship Builder Demo initialized!');
         console.log('Controls:');
         console.log('- Click blocks in palette to select');
         console.log('- Click in grid to place blocks');
@@ -102,6 +105,7 @@ export class ShipBuilderDemo {
         console.log('- shipBuilderDemo.repairConnections() - Repair ship connections');
         console.log('- shipBuilderDemo.getShip() - Get current ship');
         console.log('- shipBuilderDemo.clearShip() - Clear current ship');
+        console.log('- shipBuilderDemo.createDemoShip() - Create sample ship with physics');
     }
 
     private createDemoShip(): void {
@@ -265,9 +269,12 @@ export class ShipBuilderDemo {
 
     public getShipSystem(): ShipSystem {
         return this.shipSystem;
-    }
+    } public destroy(): void {
+        // Remove systems from game loop first
+        const gameLoop = this.application.getGameLoop();
+        gameLoop.removeSystem('ship-builder-demo');
 
-    public destroy(): void {
+        // Then destroy components
         this.shipBuilder.destroy();
         this.shipSystem.destroy();
         this.application.destroy();
@@ -308,37 +315,33 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
         document.body.style.overflow = 'hidden';
         document.body.style.backgroundColor = '#0a0a0a';
     } const demo = new ShipBuilderDemo(gameContainer);
-    await demo.waitForInitialization();// Add some helpful console methods for debugging
+    await demo.waitForInitialization();    // Add some helpful console methods for debugging
     (window as any).shipBuilderDemo = demo;
     (window as any).getShip = () => demo.getShipBuilder().getShip();
     (window as any).getShipStats = () => demo.getShipBuilder().getShip().calculateStats();
-    (window as any).validateShip = () => demo.getShipBuilder().getShip().validateStructuralIntegrity();
-    (window as any).testRefactorComponents = () => {
+    (window as any).validateShip = () => demo.getShipBuilder().getShip().validateStructuralIntegrity(); (window as any).testRefactorComponents = () => {
         console.log('🧪 TESTING REFACTORED COMPONENTS:');
-        const builder = demo.getShipBuilder();
 
         try {
-            // Test component methods
-            builder.testConnectionSystem();
-            builder.repairConnections();
-            builder.clearShip();
+            // Test component methods (DO NOT auto-run these during initialization)
+            console.log('Available test methods:');
+            console.log('- builder.testConnectionSystem() - Creates test blocks');
+            console.log('- builder.repairConnections() - Repairs ship connections');
+            console.log('- builder.clearShip() - Clears current ship');
+            console.log('- builder.resize(1600, 1000) - Resizes ship builder');
 
-            // Test resize
-            builder.resize(1600, 1000);
-
-            console.log('✅ All component tests passed!');
+            console.log('✅ All component methods available!');
             return true;
         } catch (error) {
             console.error('❌ Component test failed:', error);
             return false;
         }
-    };
-
-    console.log('Ship Builder Demo ready!');
+    }; console.log('Ship Builder Demo ready!');
     console.log('Access demo via window.shipBuilderDemo');
     console.log('Get current ship stats: getShipStats()');
     console.log('Validate current ship: validateShip()');
     console.log('Test refactored components: testRefactorComponents()');
+    console.log('Create demo ship: shipBuilderDemo.createDemoShip()');
 
     return demo;
 }
