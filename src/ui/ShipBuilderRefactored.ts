@@ -2,10 +2,6 @@ import { Container, Graphics } from 'pixi.js';
 import { Ship } from '@/entities/Ship';
 import { IShipBuilderConfig } from './interfaces/IUIComponent';
 import { CameraController } from './components/CameraController';
-import { BlockPalette } from './components/BlockPalette';
-import { StatsPanel } from './components/StatsPanel';
-import { ActionButtons, ActionButton } from './components/ActionButtons';
-import { InstructionsPanel } from './components/InstructionsPanel';
 import { InputHandler } from './components/InputHandler';
 import { BlockPlacer } from './components/BlockPlacer';
 import { BlockPreview } from './components/BlockPreview';
@@ -43,13 +39,7 @@ export class ShipBuilderRefactored {
     private worldContainer!: Container;
     private camera!: CameraController;
     private inputHandler!: InputHandler;
-    private blockPlacer!: BlockPlacer;
-
-    // UI Components
-    private blockPalette!: BlockPalette;
-    private statsPanel!: StatsPanel;
-    private actionButtons!: ActionButtons;
-    private instructionsPanel!: InstructionsPanel;
+    private blockPlacer!: BlockPlacer;    // UI Components (only PIXI.js rendering components remain)
     private blockPreview!: BlockPreview;
 
     // State
@@ -71,12 +61,9 @@ export class ShipBuilderRefactored {
         };
 
         this.initialize();
-    }
-
-    private initialize(): void {
+    } private initialize(): void {
         this.setupWorldContainer();
         this.setupCoreComponents();
-        this.setupUIComponents();
         this.setupEventHandlers();
         this.setupDebugVisualization();
 
@@ -109,73 +96,7 @@ export class ShipBuilderRefactored {
 
         // Initialize block preview
         this.blockPreview = new BlockPreview(this.worldContainer);
-    }
-
-    private setupUIComponents(): void {
-        // Create UI components
-        this.blockPalette = new BlockPalette();
-        this.statsPanel = new StatsPanel();
-        this.actionButtons = new ActionButtons();
-        this.instructionsPanel = new InstructionsPanel();
-
-        // Add to container with proper z-indexing
-        this.container.addChild(this.statsPanel.getContainer());
-        this.container.addChild(this.instructionsPanel.getContainer());
-        this.container.addChild(this.blockPalette.getContainer());
-        this.container.addChild(this.actionButtons.getContainer());
-
-        // Setup action buttons
-        this.setupActionButtons();
-
-        // Enable z-index sorting
-        this.container.sortableChildren = true;
-        this.statsPanel.getContainer().zIndex = 10;
-        this.instructionsPanel.getContainer().zIndex = 20;
-        this.blockPalette.getContainer().zIndex = 100;
-        this.actionButtons.getContainer().zIndex = 15;
-
-        // Update initial stats
-        this.updateStats();
-    }
-
-    private setupActionButtons(): void {
-        const buttons: ActionButton[] = [
-            {
-                label: 'Clear Ship',
-                color: 0xFF4444,
-                borderColor: 0xFF6666,
-                textColor: 0xFFFFFF,
-                action: () => this.clearShip()
-            },
-            {
-                label: 'Test Ship',
-                color: 0x44FF44,
-                borderColor: 0x66FF66,
-                textColor: 0x000000,
-                action: () => this.testShip()
-            },
-            {
-                label: 'Repair Links',
-                color: 0xFFAA00,
-                borderColor: 0xFFCC44,
-                textColor: 0x000000,
-                action: () => this.repairConnections()
-            }
-        ];
-
-        buttons.forEach(button => this.actionButtons.addButton(button));
-    }
-
-    private setupEventHandlers(): void {
-        // Block palette events
-        this.blockPalette.on('blockSelected', (blockType: string) => {
-            this.selectBlockType(blockType);
-        });
-
-        this.blockPalette.on('blockDeselected', () => {
-            this.deselectBlockType();
-        });
-
+    } private setupEventHandlers(): void {
         // Input events
         this.inputHandler.on('mouseMove', (worldPos: Vector, screenPos: Vector) => {
             this.handleMouseMove(worldPos, screenPos);
@@ -204,11 +125,8 @@ export class ShipBuilderRefactored {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
-    }
-
-    public deselectBlockType(): void {
+    } public deselectBlockType(): void {
         this.selectedBlockType = null;
-        this.blockPalette.deselectBlock();
         this.blockPreview.hidePreview();
         console.log('Block type deselected');
     }
@@ -261,13 +179,10 @@ export class ShipBuilderRefactored {
         if (this.selectedBlockType) {
             this.deselectBlockType();
         }
-    }
-
-    private updateStats(): void {
-        this.statsPanel.updateStats(this.ship);
-    }
-
-    private testShip(): void {
+    } private updateStats(): void {
+        // Stats are now handled by MUI components through the adapter
+        console.log('Ship stats updated (handled by MUI adapter)');
+    } public testShip(): void {
         const validation = this.ship.validateStructuralIntegrity();
 
         if (!validation.isValid) {
@@ -357,29 +272,17 @@ export class ShipBuilderRefactored {
 
     public getShip(): Ship {
         return this.ship;
-    }
-
-    public resize(screenWidth: number, screenHeight: number): void {
+    } public resize(screenWidth: number, screenHeight: number): void {
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
-        // Resize all UI components
-        this.blockPalette.resize(screenWidth, screenHeight);
-        this.statsPanel.resize(screenWidth, screenHeight);
-        this.actionButtons.resize(screenWidth, screenHeight);
-        this.instructionsPanel.resize(screenWidth, screenHeight);
+        // Resize remaining PIXI.js components
         this.blockPreview.resize(screenWidth, screenHeight);
 
         console.log(`UI resized for screen: ${screenWidth}x${screenHeight}`);
-    }
-
-    public destroy(): void {
-        // Destroy all components
+    } public destroy(): void {
+        // Destroy remaining components
         this.ship.destroy();
-        this.blockPalette.destroy();
-        this.statsPanel.destroy();
-        this.actionButtons.destroy();
-        this.instructionsPanel.destroy();
         this.inputHandler.destroy();
         this.blockPreview.destroy();
 

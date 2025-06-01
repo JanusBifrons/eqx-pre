@@ -11,7 +11,7 @@ import { RigidBodyComponent } from '@/components/RigidBodyComponent';
 import { serviceContainer } from '@/core/ServiceContainer';
 import { useGameStore } from '@/store/gameStore';
 import { GameState } from '@/core/types';
-import { Graphics, Text, TextStyle } from 'pixi.js';
+import { Graphics } from 'pixi.js';
 
 export async function runEnhancedDemo(container?: HTMLElement) {
     console.log('🚀 Starting Enhanced Physics Demo...');
@@ -141,9 +141,6 @@ export async function runEnhancedDemo(container?: HTMLElement) {
         });
     }    // Create demo scene with various physics objects
     createDemoScene(entityManager, physicsSystem);
-
-    // Setup UI
-    createUI(app);
 
     // Start the game loop
     gameLoop.start();
@@ -361,52 +358,4 @@ function createDemoScene(entityManager: EntityManager, physicsSystem: PhysicsSys
     animatePlatform();
 
     console.log('🏗️ Demo scene created with enhanced physics objects');
-}
-
-function createUI(app: Application) {
-    const pixiApp = app.getPixiApp();
-
-    // Create UI text for collision info
-    const textStyle = new TextStyle({
-        fontFamily: 'Arial',
-        fontSize: 14,
-        fill: 0xffffff,
-        align: 'left'
-    });
-
-    const collisionText = new Text('Collisions: 0 active', textStyle);
-    collisionText.x = 10;
-    collisionText.y = 10;
-    pixiApp.stage.addChild(collisionText);
-
-    const statsText = new Text('', textStyle);
-    statsText.x = 10;
-    statsText.y = 30;
-    pixiApp.stage.addChild(statsText);
-
-    const instructionsText = new Text('Enhanced Physics Demo\n• Watch objects collide and change colors\n• Sensor area (purple) detects objects\n• Moving platform (orange) animates\n• Click and drag to move physics objects!', textStyle);
-    instructionsText.x = 10;
-    instructionsText.y = window.innerHeight - 100;
-    pixiApp.stage.addChild(instructionsText);
-
-    // Update UI with game state
-    const updateUI = () => {
-        const gameState = useGameStore.getState();
-        const physicsSystem = serviceContainer.get('physicsSystem') as PhysicsSystem;
-
-        collisionText.text = `Active Collisions: ${gameState.activeCollisions.length}`;
-
-        if (physicsSystem && physicsSystem.getCollisionManager) {
-            const collisionManager = physicsSystem.getCollisionManager();
-            if (collisionManager) {
-                const stats = collisionManager.getCollisionStats();
-                statsText.text = `Total Collisions: ${gameState.totalCollisions} | Callbacks: ${stats.totalCallbacks}`;
-            }
-        }
-
-        requestAnimationFrame(updateUI);
-    };
-    updateUI();
-
-    console.log('🎨 Enhanced UI created with real-time collision stats');
 }
