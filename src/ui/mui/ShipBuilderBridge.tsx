@@ -18,13 +18,8 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
     const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
 
     // Camera state
-    const [zoom, setZoom] = useState<number>(1.0);
-
-    // Debug state
+    const [zoom, setZoom] = useState<number>(1.0);    // Debug state
     const [debugEnabled, setDebugEnabled] = useState<boolean>(false);
-    const [showDebugBorder, setShowDebugBorder] = useState<boolean>(false);
-    const [showDebugCenter, setShowDebugCenter] = useState<boolean>(false);
-    const [showDebugStats, setShowDebugStats] = useState<boolean>(false);
 
     // Update ship state when adapter emits changes
     useEffect(() => {
@@ -142,25 +137,10 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
     const handleSnapToGridChange = useCallback((snap: boolean) => {
         setSnapToGrid(snap);
         shipBuilderAdapter.setSnapToGrid(snap);
-    }, []);
-
-    // Debug control handlers
+    }, []);    // Debug control handlers
     const handleDebugEnabledChange = useCallback((enabled: boolean) => {
         setDebugEnabled(enabled);
         shipBuilderAdapter.setDebugVisualization(enabled);
-    }, []); const handleShowDebugBorderChange = useCallback((show: boolean) => {
-        setShowDebugBorder(show);
-        shipBuilderAdapter.setShowDebugBorder(show);
-    }, []);
-
-    const handleShowDebugCenterChange = useCallback((show: boolean) => {
-        setShowDebugCenter(show);
-        shipBuilderAdapter.setShowDebugCenter(show);
-    }, []);
-
-    const handleShowDebugStatsChange = useCallback((show: boolean) => {
-        setShowDebugStats(show);
-        shipBuilderAdapter.setShowDebugStats(show);
     }, []);
 
     const handleCollisionLoggingChange = useCallback((enabled: boolean) => {
@@ -191,25 +171,9 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
             const snapEnabled = shipBuilderAdapter.getSnapToGrid();
             if (snapEnabled !== undefined) {
                 setSnapToGrid(snapEnabled);
-            } const debugEnabled = shipBuilderAdapter.getDebugVisualization();
+            }            const debugEnabled = shipBuilderAdapter.getDebugVisualization();
             if (debugEnabled !== undefined) {
                 setDebugEnabled(debugEnabled);
-            }
-
-            // Sync debug visual states
-            const debugBorder = shipBuilderAdapter.getShowDebugBorder();
-            if (debugBorder !== undefined) {
-                setShowDebugBorder(debugBorder);
-            }
-
-            const debugCenter = shipBuilderAdapter.getShowDebugCenter();
-            if (debugCenter !== undefined) {
-                setShowDebugCenter(debugCenter);
-            }
-
-            const debugStats = shipBuilderAdapter.getShowDebugStats();
-            if (debugStats !== undefined) {
-                setShowDebugStats(debugStats);
             }
         };
 
@@ -233,32 +197,14 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
             onResetCamera={handleResetCamera}
             showGrid={showGrid}
             showConnectionPoints={showConnectionPoints}
-            snapToGrid={snapToGrid}
-            onShowGridChange={handleShowGridChange}
+            snapToGrid={snapToGrid}            onShowGridChange={handleShowGridChange}
             onShowConnectionPointsChange={handleShowConnectionPointsChange}
             onSnapToGridChange={handleSnapToGridChange}
             zoom={zoom}
-            onZoomChange={handleZoomChange}
-            debugEnabled={debugEnabled}
+            onZoomChange={handleZoomChange}            debugEnabled={debugEnabled}
             onDebugEnabledChange={handleDebugEnabledChange}
-            showDebugBorder={showDebugBorder}
-            showDebugCenter={showDebugCenter}
-            showDebugStats={showDebugStats}
-            onShowDebugBorderChange={handleShowDebugBorderChange}
-            onShowDebugCenterChange={handleShowDebugCenterChange}
-            onShowDebugStatsChange={handleShowDebugStatsChange} debugInfo={shipBuilderAdapter.getDebugInfo() || {
-                camera: {
-                    x: 0,
-                    y: 0,
-                    zoom: zoom,
-                    rotation: 0,
-                },
-                screenSize: { width: 800, height: 600 },
-                canvasSize: { width: 800, height: 600 },
-                containerSize: { width: 800, height: 600 },
-                resolution: 1.0,
-                fps: 60,
-            }}
+            enableDebugVisualization={debugEnabled}
+            onDebugVisualizationChange={handleDebugEnabledChange}
             collisionLogging={collisionLogging}
             onCollisionLoggingChange={handleCollisionLoggingChange}
         />
