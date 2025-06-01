@@ -13,8 +13,18 @@ import { useGameStore } from '@/store/gameStore';
 import { GameState } from '@/core/types';
 import { Graphics, Text, TextStyle } from 'pixi.js';
 
-export async function runEnhancedDemo() {
+export async function runEnhancedDemo(container?: HTMLElement) {
     console.log('🚀 Starting Enhanced Physics Demo...');
+
+    // If container is provided, use it
+    let gameContainer: HTMLElement;
+    
+    if (container) {
+        gameContainer = container;
+    } else {
+        // Fallback to document.body for legacy usage
+        gameContainer = document.body;
+    }
 
     // Create the main application
     const app = new Application({
@@ -24,7 +34,7 @@ export async function runEnhancedDemo() {
         antialias: true,
         fps: 60,
         fixedTimeStep: 1 / 60,
-    });
+    }, gameContainer);
 
     await app.start();
 

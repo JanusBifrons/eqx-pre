@@ -11,8 +11,9 @@ export class Application implements IApplication {
     private gameState = GameState.STOPPED;
     private config: GameConfig;
     private gameContainer?: Container;
+    private domContainer?: HTMLElement;
 
-    constructor(config: Partial<GameConfig> = {}) {
+    constructor(config: Partial<GameConfig> = {}, domContainer?: HTMLElement) {
         this.config = {
             width: window.innerWidth,
             height: window.innerHeight,
@@ -24,6 +25,7 @@ export class Application implements IApplication {
             ...config,
         };
 
+        this.domContainer = domContainer;
         this.gameLoop = new GameLoop(this.config.fixedTimeStep);
         this.setupServices();
     }
@@ -102,8 +104,7 @@ export class Application implements IApplication {
 
     getGameState(): GameState {
         return this.gameState;
-    }
-    private async initializePixi(): Promise<void> {
+    }    private async initializePixi(): Promise<void> {
         this.pixiApp = new PixiApplication({
             width: this.config.width,
             height: this.config.height,
@@ -114,9 +115,17 @@ export class Application implements IApplication {
         });
 
         // Add the canvas to the DOM
-        const gameContainer = document.getElementById('game-container');
-        if (!gameContainer) {
-            throw new Error('Game container element not found');
+        let gameContainer: HTMLElement;
+        
+        if (this.domContainer) {
+            gameContainer = this.domContainer;
+        } else {
+            // Fallback to looking for game-container element
+            const existingContainer = document.getElementById('game-container');
+            if (!existingContainer) {
+                throw new Error('Game container element not found');
+            }
+            gameContainer = existingContainer;
         }
 
         gameContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);

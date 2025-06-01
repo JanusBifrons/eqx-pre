@@ -29,10 +29,18 @@ function isKeyPressed(keyCode: string): boolean {
     return !!keyState[keyCode];
 }
 
-export async function runAsteroidsDemo() {
+export async function runAsteroidsDemo(container?: HTMLElement) {
     console.log('🚀 Starting Asteroids Demo...');
 
-    // Create the main application
+    // If container is provided, append the game to it
+    let gameContainer: HTMLElement;
+    
+    if (container) {
+        gameContainer = container;
+    } else {
+        // Fallback to document.body for legacy usage
+        gameContainer = document.body;
+    }    // Create the main application
     const app = new Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -40,7 +48,7 @@ export async function runAsteroidsDemo() {
         antialias: true,
         fps: 60,
         fixedTimeStep: 1 / 60,
-    });
+    }, gameContainer);
 
     await app.start();
 

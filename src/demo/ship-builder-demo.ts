@@ -16,14 +16,18 @@ export class ShipBuilderDemo {
     private shipBuilder!: ShipBuilder;
     private gameContainer!: Container;
     private initializationPromise: Promise<void>;
+    private domContainer?: HTMLElement;
 
-    constructor() {        // Create Application instance which will register itself in ServiceContainer
+    constructor(domContainer?: HTMLElement) {
+        this.domContainer = domContainer;
+        
+        // Create Application instance which will register itself in ServiceContainer
         this.application = new Application({
             width: 1600,
             height: 1000,
             backgroundColor: 0x0a0a0a,
             antialias: true
-        });
+        }, domContainer);
 
         this.physicsEngine = Engine.create();
         this.physicsEngine.world.gravity.y = 0; // Space physics - no gravity
@@ -265,26 +269,40 @@ export class ShipBuilderDemo {
 }
 
 // Example usage and initialization
-export async function initializeShipBuilderDemo(): Promise<ShipBuilderDemo> {    // Create required DOM elements
-    const gameContainer = document.createElement('div');
-    gameContainer.id = 'game-container';
-    gameContainer.style.width = '100%';
-    gameContainer.style.height = '100vh';
-    gameContainer.style.display = 'flex';
-    gameContainer.style.justifyContent = 'center';
-    gameContainer.style.alignItems = 'center';
-    gameContainer.style.overflow = 'hidden';
-    gameContainer.style.backgroundColor = '#0a0a0a';
-    document.body.appendChild(gameContainer);
+export async function initializeShipBuilderDemo(container?: HTMLElement): Promise<ShipBuilderDemo> {
+    // Create required DOM elements
+    let gameContainer: HTMLElement;
+    
+    if (container) {
+        // Use provided container
+        gameContainer = container;
+        gameContainer.style.width = '100%';
+        gameContainer.style.height = '100%';
+        gameContainer.style.display = 'flex';
+        gameContainer.style.justifyContent = 'center';
+        gameContainer.style.alignItems = 'center';
+        gameContainer.style.overflow = 'hidden';
+        gameContainer.style.backgroundColor = '#0a0a0a';
+    } else {
+        // Create new container and append to body (fallback for legacy usage)
+        gameContainer = document.createElement('div');
+        gameContainer.id = 'game-container';
+        gameContainer.style.width = '100%';
+        gameContainer.style.height = '100vh';
+        gameContainer.style.display = 'flex';
+        gameContainer.style.justifyContent = 'center';
+        gameContainer.style.alignItems = 'center';
+        gameContainer.style.overflow = 'hidden';
+        gameContainer.style.backgroundColor = '#0a0a0a';
+        document.body.appendChild(gameContainer);
 
-    // Apply full-screen styling to body
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.overflow = 'hidden';
-    document.body.style.backgroundColor = '#0a0a0a';
-
-    const demo = new ShipBuilderDemo();
-    await demo.waitForInitialization();    // Add some helpful console methods for debugging
+        // Apply full-screen styling to body
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.overflow = 'hidden';
+        document.body.style.backgroundColor = '#0a0a0a';
+    }    const demo = new ShipBuilderDemo(gameContainer);
+    await demo.waitForInitialization();// Add some helpful console methods for debugging
     (window as any).shipBuilderDemo = demo;
     (window as any).getShip = () => demo.getShipBuilder().getShip();
     (window as any).getShipStats = () => demo.getShipBuilder().getShip().calculateStats();
