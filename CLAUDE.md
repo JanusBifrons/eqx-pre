@@ -2,6 +2,10 @@
 
 ## ⚠️ CRITICAL POWERSHELL RULES ⚠️
 
+### ⚠️ MISTAKE COUNTER ⚠️
+**Times Claude has incorrectly used && in PowerShell: 3** 
+(User specifically asked to stop using && multiple times)
+
 ### Command Chaining Syntax
 - ✅ **CORRECT**: `cd "c:\Users\alecv\Desktop\eqx-pre\eqx-pre"; npm run dev`
 - ❌ **WRONG**: `cd "path" && command` (bash syntax - will fail)

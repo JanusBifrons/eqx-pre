@@ -8,10 +8,8 @@ export const ShipBuilderPage: React.FC = () => {
 
     useEffect(() => {
         loadDemo(initializeShipBuilderDemo);
-    }, []);
-
-    return (
-        <div className="relative min-h-full">
+    }, []); return (
+        <div className="relative w-full h-full overflow-hidden">
             <LoadingOverlay isLoading={isLoading} demoName="Ship Builder" />
             <div ref={containerRef} className="w-full h-full" />
         </div>

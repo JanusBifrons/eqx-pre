@@ -26,7 +26,7 @@ export async function runEnhancedDemo(container?: HTMLElement) {
         gameContainer = document.body;
     }
 
-    // Create the main application
+    // Create the main application with unified rendering engine
     const app = new Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -37,6 +37,16 @@ export async function runEnhancedDemo(container?: HTMLElement) {
     }, gameContainer);
 
     await app.start();
+
+    // Get the rendering engine for advanced features
+    const renderingEngine = app.getRenderingEngine();
+
+    // Set camera for enhanced demo (default view)
+    renderingEngine.setCamera({
+        x: 0,
+        y: 0,
+        zoom: 1.0
+    });
 
     // Create and register EntityManager
     const entityManager = new EntityManager();

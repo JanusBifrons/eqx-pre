@@ -14,14 +14,10 @@ export class ShipBuilderDemo {
     private entityManager!: EntityManager;
     private shipSystem!: ShipSystem;
     private shipBuilder!: ShipBuilder;
-    private gameContainer!: Container;
-    private initializationPromise: Promise<void>;
-    private domContainer?: HTMLElement;
+    private gameContainer!: Container; private initializationPromise: Promise<void>;
 
     constructor(domContainer?: HTMLElement) {
-        this.domContainer = domContainer;
-
-        // Create Application instance which will register itself in ServiceContainer
+        // Create Application instance with unified rendering engine
         this.application = new Application({
             width: 1600,
             height: 1000,
@@ -42,6 +38,16 @@ export class ShipBuilderDemo {
     private async initialize(): Promise<void> {
         // Start the application (this registers services)
         await this.application.start();
+
+        // Get the rendering engine for advanced features
+        const renderingEngine = this.application.getRenderingEngine();
+
+        // Set camera for ship builder (zoomed in for detailed work)
+        renderingEngine.setCamera({
+            x: 0,
+            y: 0,
+            zoom: 1.2
+        });
 
         // Now we can create EntityManager since application service is registered
         this.entityManager = new EntityManager();

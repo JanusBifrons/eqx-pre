@@ -8,9 +8,9 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     return (
-        <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+        <div className="h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
             <Header />
-            <main className="container mx-auto px-6 py-6 flex-1">
+            <main className="flex-1 min-h-0 overflow-hidden">
                 {children}
             </main>
             <Footer />

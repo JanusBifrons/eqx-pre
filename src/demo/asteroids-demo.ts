@@ -40,7 +40,9 @@ export async function runAsteroidsDemo(container?: HTMLElement) {
     } else {
         // Fallback to document.body for legacy usage
         gameContainer = document.body;
-    }    // Create the main application
+    }
+
+    // Create the main application with unified rendering engine
     const app = new Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -51,6 +53,16 @@ export async function runAsteroidsDemo(container?: HTMLElement) {
     }, gameContainer);
 
     await app.start();
+
+    // Get the rendering engine for advanced features
+    const renderingEngine = app.getRenderingEngine();
+
+    // Set camera for asteroids demo (show a larger area)
+    renderingEngine.setCamera({
+        x: 0,
+        y: 0,
+        zoom: 0.8
+    });
 
     // Create and register EntityManager
     const entityManager = new EntityManager();
@@ -73,9 +85,7 @@ export async function runAsteroidsDemo(container?: HTMLElement) {
     // Add systems to game loop
     gameLoop.addSystem(physicsSystem);
     gameLoop.addSystem(transformSystem);
-    gameLoop.addSystem(renderSystem);
-
-    // Register systems in service container
+    gameLoop.addSystem(renderSystem);    // Register systems in service container
     serviceContainer.register('physicsSystem', physicsSystem);
     serviceContainer.register('transformSystem', transformSystem);
     serviceContainer.register('renderSystem', renderSystem);

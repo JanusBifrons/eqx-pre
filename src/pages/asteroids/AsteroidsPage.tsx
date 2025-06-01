@@ -11,10 +11,8 @@ export const AsteroidsPage: React.FC = () => {
             runAsteroidsDemo(container);
             return Promise.resolve();
         });
-    }, []);
-
-    return (
-        <div className="relative min-h-full">
+    }, []); return (
+        <div className="relative w-full h-full overflow-hidden">
             <LoadingOverlay isLoading={isLoading} demoName="Asteroids" />
             <div ref={containerRef} className="w-full h-full" />
         </div>

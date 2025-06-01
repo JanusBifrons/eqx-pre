@@ -3,6 +3,7 @@ import Stats from 'stats.js';
 import { IApplication, GameConfig, GameState } from './types';
 import { GameLoop } from './GameLoop';
 import { serviceContainer } from './ServiceContainer';
+import { RenderingEngine } from './RenderingEngine';
 
 export class Application implements IApplication {
     private pixiApp?: PixiApplication;
@@ -12,6 +13,7 @@ export class Application implements IApplication {
     private config: GameConfig;
     private gameContainer?: Container;
     private domContainer?: HTMLElement;
+    private renderingEngine?: RenderingEngine;
 
     constructor(config: Partial<GameConfig> = {}, domContainer?: HTMLElement) {
         this.config = {
@@ -34,7 +36,7 @@ export class Application implements IApplication {
         try {
             this.gameState = GameState.LOADING;
 
-            await this.initializePixi();
+            await this.initializeRenderingEngine();
             this.initializeStats();
             this.setupGameContainer();
             this.setupEventListeners();
@@ -102,33 +104,36 @@ export class Application implements IApplication {
         return this.gameContainer;
     }
 
+    getRenderingEngine(): RenderingEngine {
+        if (!this.renderingEngine) {
+            throw new Error('Rendering engine not initialized');
+        }
+        return this.renderingEngine;
+    }
+
     getGameState(): GameState {
         return this.gameState;
-    } private async initializePixi(): Promise<void> {
-        this.pixiApp = new PixiApplication({
-            width: this.config.width,
-            height: this.config.height,
-            backgroundColor: this.config.backgroundColor,
-            antialias: this.config.antialias,
-            resolution: this.config.resolution,
-            autoDensity: true,
-        });
+    }
 
-        // Add the canvas to the DOM
-        let gameContainer: HTMLElement;
-
-        if (this.domContainer) {
-            gameContainer = this.domContainer;
-        } else {
+    private async initializeRenderingEngine(): Promise<void> {
+        if (!this.domContainer) {
             // Fallback to looking for game-container element
             const existingContainer = document.getElementById('game-container');
             if (!existingContainer) {
                 throw new Error('Game container element not found');
             }
-            gameContainer = existingContainer;
+            this.domContainer = existingContainer;
         }
 
-        gameContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);
+        this.renderingEngine = new RenderingEngine(this.domContainer, {
+            backgroundColor: this.config.backgroundColor,
+            antialias: this.config.antialias,
+            resolution: this.config.resolution,
+            enableDebug: true, // Enable debug by default for development            enableCamera: true
+        });
+
+        await this.renderingEngine.initialize();
+        this.pixiApp = this.renderingEngine.getPixiApp();
     }
 
     private initializeStats(): void {
