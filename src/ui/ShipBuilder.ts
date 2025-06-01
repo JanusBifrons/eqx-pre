@@ -40,7 +40,14 @@ export class ShipBuilder {
     private camera!: CameraController;
     private inputHandler!: InputHandler;
     private blockPlacer!: BlockPlacer;    // UI Components (only PIXI.js rendering components remain)
-    private blockPreview!: BlockPreview;    // State
+    private blockPreview!: BlockPreview;
+
+    // Debug visualization components
+    private debugContainer!: Container;
+    private placeableAreaDebug!: Graphics;
+    private cursorDebug!: Graphics;
+
+    // State
     private selectedBlockType: string | null = null;
     private lastMousePosition: Vector | null = null;
 
@@ -64,9 +71,7 @@ export class ShipBuilder {
         };
 
         this.initialize();
-    }
-
-    private initialize(): void {
+    } private initialize(): void {
         this.setupWorldContainer();
         this.setupCoreComponents();
         this.setupEventHandlers();
@@ -75,16 +80,19 @@ export class ShipBuilder {
         // Start in pan mode since no block is selected initially
         this.inputHandler.setPanMode(true);
 
-        // Initial resize
+        // Initial resize to set up proper camera positioning
         this.resize(1600, 1000);
-    }
-
-    private setupWorldContainer(): void {
+    } private setupWorldContainer(): void {
         this.worldContainer = new Container();
         this.container.addChild(this.worldContainer);
 
         // Add ship to world
         this.worldContainer.addChild(this.ship.container);
+
+        // Setup debug visualization container - ADD TO MAIN CONTAINER, NOT WORLD CONTAINER
+        // This way debug visuals don't get transformed by camera
+        this.debugContainer = new Container();
+        this.container.addChild(this.debugContainer);
 
         // Add placement area visualization if grid is hidden
         if (!this.options.showGrid) {
@@ -93,6 +101,11 @@ export class ShipBuilder {
     } private setupCoreComponents(): void {
         // Initialize camera system
         this.camera = new CameraController(this.worldContainer);
+
+        // Set up camera transform callback to update debug visuals
+        this.camera.setOnTransformChange(() => {
+            this.updatePlaceableAreaDebug();
+        });
 
         // Initialize input handling
         this.inputHandler = new InputHandler(this.container, this.camera);
@@ -121,14 +134,16 @@ export class ShipBuilder {
 
         this.inputHandler.on('escapePressed', () => {
             this.deselectBlockType();
-        });
-    }
-
-    private setupDebugVisualization(): void {
-        if (this.options.enableDebugVisualization) {
-            this.addDebugVisualization();
-        }
-    } public selectBlockType(blockType: string): void {
+        });    } private setupDebugVisualization(): void {
+        // Always enable debug visualization for now to help debug the issue
+        this.addDebugVisualization();
+        this.addCursorDebug();
+        
+        // Add placeable area debug after a short delay to ensure camera is positioned
+        setTimeout(() => {
+            this.addPlaceableAreaDebug();
+        }, 100);
+    }public selectBlockType(blockType: string): void {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
@@ -164,14 +179,56 @@ export class ShipBuilder {
         if (this.onBlockDeselected) {
             this.onBlockDeselected();
         }
-    } private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
+    }    private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
         // Track the last mouse position for when we switch block types
         this.lastMousePosition = worldPos;
 
-        if (!this.selectedBlockType || !this.isBuilding) return;
+        // Update cursor debug visualization
+        this.updateCursorDebug(worldPos);
+
+        // Enhanced debug logging to track the issue
+        const debugInfo = {
+            worldPos: { x: worldPos.x, y: worldPos.y },
+            selectedBlockType: this.selectedBlockType,
+            isBuilding: this.isBuilding,
+            hasPreviewBlock: this.blockPreview.hasPreviewBlock(),
+            gridConfig: {
+                gridSize: this.options.gridSize,
+                gridWidth: this.options.gridWidth,
+                gridHeight: this.options.gridHeight
+            },
+            buildArea: {
+                width: this.options.gridWidth * this.options.gridSize,
+                height: this.options.gridHeight * this.options.gridSize,
+                halfWidth: (this.options.gridWidth * this.options.gridSize) / 2,
+                halfHeight: (this.options.gridHeight * this.options.gridSize) / 2
+            }
+        };
+
+        if (!this.selectedBlockType || !this.isBuilding) {
+            console.log('handleMouseMove: No block selected or not building', debugInfo);
+            
+            // Hide preview if no block is selected
+            if (!this.selectedBlockType && this.blockPreview.hasPreviewBlock()) {
+                console.log('handleMouseMove: Hiding preview because no block selected');
+                this.blockPreview.hidePreview();
+            }
+            return;
+        }
 
         const definition = BlockDefinitions.get(this.selectedBlockType);
-        if (!definition) return;
+        if (!definition) {
+            console.log('handleMouseMove: No definition found for block type', this.selectedBlockType, debugInfo);
+            return;
+        }
+
+        // Ensure we have a preview block - if not, recreate it
+        if (!this.blockPreview.hasPreviewBlock()) {
+            console.log('handleMouseMove: No preview block exists, recreating...', {
+                selectedBlockType: this.selectedBlockType
+            });
+            this.blockPreview.showPreview(this.selectedBlockType);
+        }
 
         // Apply grid snapping
         const finalPos = this.options.snapToGrid ?
@@ -182,9 +239,35 @@ export class ShipBuilder {
         const isWithinBounds = this.isPositionWithinBounds(finalPos, definition);
         const isOccupied = this.isPositionOccupied(finalPos, definition);
 
+        console.log('handleMouseMove: Position check', {
+            ...debugInfo,
+            definition: { width: definition.width, height: definition.height },
+            finalPos: { x: finalPos.x, y: finalPos.y },
+            isValid,
+            isWithinBounds,
+            isOccupied,
+            boundsCheck: {
+                testLeft: finalPos.x - definition.width / 2,
+                testRight: finalPos.x + definition.width / 2,
+                testTop: finalPos.y - definition.height / 2,
+                testBottom: finalPos.y + definition.height / 2,
+                buildAreaLeft: -debugInfo.buildArea.halfWidth,
+                buildAreaRight: debugInfo.buildArea.halfWidth,
+                buildAreaTop: -debugInfo.buildArea.halfHeight,
+                buildAreaBottom: debugInfo.buildArea.halfHeight
+            }
+        });
+
         // Update preview
         this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
-    } private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
+    }private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
+        console.log('🖱️ handleLeftClick called', {
+            worldPos: { x: worldPos.x, y: worldPos.y },
+            selectedBlockType: this.selectedBlockType,
+            isBuilding: this.isBuilding,
+            hasPreviewBlock: this.blockPreview.hasPreviewBlock()
+        });
+        
         if (!this.selectedBlockType || !this.isBuilding) {
             // If clicking in building area without selection, potentially deselect
             if (this.selectedBlockType && this.isInBuildingArea(worldPos)) {
@@ -197,18 +280,59 @@ export class ShipBuilder {
         const finalPos = this.options.snapToGrid ?
             this.blockPlacer.snapToGrid(worldPos, definition) : worldPos;
 
+        console.log('🎯 About to attempt block placement', {
+            selectedBlockType: this.selectedBlockType,
+            finalPos: { x: finalPos.x, y: finalPos.y },
+            hasPreviewBlock: this.blockPreview.hasPreviewBlock(),
+            shipBlockCount: this.ship.blocks.size
+        });
+
         // Attempt to place block
-        const success = this.blockPlacer.placeBlock(finalPos, this.selectedBlockType); if (success) {
-            console.log(`Block placed at (${finalPos.x}, ${finalPos.y})`);
+        const success = this.blockPlacer.placeBlock(finalPos, this.selectedBlockType);
+
+        if (success) {
+            console.log(`✅ Block placed successfully at (${finalPos.x}, ${finalPos.y})`);
+            console.log('📊 State before refresh:', {
+                selectedBlockType: this.selectedBlockType,
+                hasPreviewBlock: this.blockPreview.hasPreviewBlock(),
+                shipBlockCount: this.ship.blocks.size
+            });
 
             // Keep the block type selected for continuous building
             // Refresh the preview to ensure it continues working
-            this.blockPreview.refreshPreview(this.selectedBlockType);
+            
+            // Store the selected block type to ensure it doesn't get lost
+            const currentBlockType = this.selectedBlockType;
+            
+            // Add a small delay to ensure any ongoing operations complete
+            setTimeout(() => {
+                console.log('🔄 Refreshing preview after placement', {
+                    currentBlockType,
+                    stillSelected: this.selectedBlockType === currentBlockType,
+                    hasPreviewBlock: this.blockPreview.hasPreviewBlock()
+                });
+                
+                if (this.selectedBlockType === currentBlockType) {
+                    this.blockPreview.refreshPreview(currentBlockType);
+                    
+                    // Force a position update if we have a last mouse position
+                    if (this.lastMousePosition) {
+                        console.log('🔄 Forcing position update with last mouse position');
+                        this.handleMouseMove(this.lastMousePosition, { x: 0, y: 0 });
+                    }
+                }
+            }, 10); // Very short delay to let any render cycles complete
+
+            console.log('📊 State after refresh setup:', {
+                selectedBlockType: this.selectedBlockType,
+                hasPreviewBlock: this.blockPreview.hasPreviewBlock(),
+                shipBlockCount: this.ship.blocks.size
+            });
 
             // Trigger UI update - this will be handled by the adapter
             this.updateStats();
         } else {
-            console.log(`Cannot place block at (${finalPos.x}, ${finalPos.y})`);
+            console.log(`❌ Cannot place block at (${finalPos.x}, ${finalPos.y})`);
         }
     }
 
@@ -318,13 +442,20 @@ export class ShipBuilder {
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
-        // Center the camera initially if it's at the default position
+        // Initialize camera to center on first setup or when camera is at default position
         if (this.camera.x === 0 && this.camera.y === 0) {
-            this.camera.setPosition(screenWidth / 2, screenHeight / 2);
+            this.camera.initializePosition(screenWidth, screenHeight);
         }
 
         // Resize remaining PIXI.js components
         this.blockPreview.resize(screenWidth, screenHeight);
+
+        // Now that camera is properly positioned, add the placeable area debug
+        if (!this.placeableAreaDebug) {
+            this.addPlaceableAreaDebug();
+        } else {
+            this.updatePlaceableAreaDebug();
+        }
 
         console.log(`UI resized for screen: ${screenWidth}x${screenHeight}`);
     } public destroy(): void {
@@ -481,24 +612,7 @@ export class ShipBuilder {
                 graphics.lineTo(x, y - size);
                 break;
         }
-    }
-
-    private addDebugVisualization(): void {
-        const debugGraphics = new Graphics();
-        debugGraphics.lineStyle(2, 0xFF0000, 0.5);
-        debugGraphics.drawRect(-800, -500, 1600, 1000);
-
-        // Draw center crosshairs
-        debugGraphics.moveTo(-50, 0);
-        debugGraphics.lineTo(50, 0);
-        debugGraphics.moveTo(0, -50);
-        debugGraphics.lineTo(0, 50);
-
-        this.container.addChild(debugGraphics);
-        console.log('🔍 Debug visualization added - red border shows screen bounds');
-    }
-
-    // Public API methods for testing and external use
+    }    // Public API methods for testing and external use
     public testConnectionSystem(): void {
         console.log('🧪 TESTING CONNECTION SYSTEM:');
         this.clearShip();
@@ -664,9 +778,140 @@ export class ShipBuilder {
     // Callback setter methods for external integration
     public setOnShipChanged(callback: (() => void) | null): void {
         this.onShipChanged = callback;
+    } public setOnBlockDeselected(callback: (() => void) | null): void {
+        this.onBlockDeselected = callback;
+    }    // Debug visualization methods
+    private addDebugVisualization(): void {
+        this.placeableAreaDebug = new Graphics();
+        this.debugContainer.addChild(this.placeableAreaDebug);
     }
 
-    public setOnBlockDeselected(callback: (() => void) | null): void {
-        this.onBlockDeselected = callback;
+    private addCursorDebug(): void {
+        this.cursorDebug = new Graphics();
+        this.debugContainer.addChild(this.cursorDebug);
+    }
+
+    private addPlaceableAreaDebug(): void {
+        if (!this.placeableAreaDebug) return;
+
+        this.placeableAreaDebug.clear();
+
+        const { gridSize, gridWidth, gridHeight } = this.options;
+        const areaWidth = gridWidth * gridSize;
+        const areaHeight = gridHeight * gridSize;
+
+        // Convert world bounds to screen coordinates
+        const worldTopLeft = { x: -areaWidth / 2, y: -areaHeight / 2 };
+        const worldBottomRight = { x: areaWidth / 2, y: areaHeight / 2 };
+
+        const screenTopLeft = this.camera.worldToScreen(worldTopLeft);
+        const screenBottomRight = this.camera.worldToScreen(worldBottomRight);
+
+        const screenWidth = screenBottomRight.x - screenTopLeft.x;
+        const screenHeight = screenBottomRight.y - screenTopLeft.y;
+
+        // Draw bright colored rectangle for placeable area in screen space
+        this.placeableAreaDebug.lineStyle(3, 0x00FF00, 1.0); // Bright green
+        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+
+        // Add semi-transparent fill
+        this.placeableAreaDebug.beginFill(0x00FF00, 0.1);
+        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.endFill();
+
+        console.log(`🔧 DEBUG PLACEABLE AREA:`);
+        console.log(`📐 Camera position: (${this.camera.x}, ${this.camera.y}) zoom: ${this.camera.zoom}`);
+        console.log(`📏 Grid config: ${gridWidth}x${gridHeight} @ ${gridSize}px = ${areaWidth}x${areaHeight}px`);
+        console.log(`🌍 World bounds: (${worldTopLeft.x}, ${worldTopLeft.y}) to (${worldBottomRight.x}, ${worldBottomRight.y})`);
+        console.log(`🖥️ Screen bounds: (${screenTopLeft.x}, ${screenTopLeft.y}) to (${screenBottomRight.x}, ${screenBottomRight.y})`);
+    }
+
+    private updateCursorDebug(worldPos: Vector): void {
+        if (!this.cursorDebug) return;
+
+        this.cursorDebug.clear();
+
+        // Convert world position to screen position for cursor debug
+        const screenPos = this.camera.worldToScreen({ x: worldPos.x, y: worldPos.y });
+
+        // Draw a cross at cursor position IN SCREEN SPACE
+        const crossSize = 20;
+        this.cursorDebug.lineStyle(2, 0xFF0000, 1.0); // Bright red
+
+        // Horizontal line
+        this.cursorDebug.moveTo(screenPos.x - crossSize, screenPos.y);
+        this.cursorDebug.lineTo(screenPos.x + crossSize, screenPos.y);
+
+        // Vertical line
+        this.cursorDebug.moveTo(screenPos.x, screenPos.y - crossSize);
+        this.cursorDebug.lineTo(screenPos.x, screenPos.y + crossSize);
+
+        // Add small circle at center
+        this.cursorDebug.beginFill(0xFF0000, 0.8);
+        this.cursorDebug.drawCircle(screenPos.x, screenPos.y, 3);
+        this.cursorDebug.endFill();
+    }
+
+    private updatePlaceableAreaDebug(): void {
+        if (!this.placeableAreaDebug) return;
+
+        this.placeableAreaDebug.clear();
+
+        const { gridSize, gridWidth, gridHeight } = this.options;
+        const areaWidth = gridWidth * gridSize;
+        const areaHeight = gridHeight * gridSize;
+
+        // Convert world bounds to screen coordinates
+        const worldTopLeft = { x: -areaWidth / 2, y: -areaHeight / 2 };
+        const worldBottomRight = { x: areaWidth / 2, y: areaHeight / 2 };
+
+        const screenTopLeft = this.camera.worldToScreen(worldTopLeft);
+        const screenBottomRight = this.camera.worldToScreen(worldBottomRight);
+
+        const screenWidth = screenBottomRight.x - screenTopLeft.x;
+        const screenHeight = screenBottomRight.y - screenTopLeft.y;
+
+        // Draw bright colored rectangle for placeable area in screen space
+        this.placeableAreaDebug.lineStyle(3, 0x00FF00, 1.0); // Bright green
+        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+
+        // Add semi-transparent fill
+        this.placeableAreaDebug.beginFill(0x00FF00, 0.1);
+        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.endFill();
+    }
+
+    // Debug method to track system state
+    public debugSystemState(): void {
+        console.log('🔍 SHIP BUILDER SYSTEM STATE:');
+        console.log('- Selected block type:', this.selectedBlockType);
+        console.log('- Is building mode:', this.isBuilding);
+        console.log('- Has preview block:', this.blockPreview.hasPreviewBlock());
+        console.log('- Ship has blocks:', this.ship.blocks.size);
+        console.log('- Pan mode:', this.inputHandler.getPanMode());
+        console.log('- Last mouse position:', this.lastMousePosition);
+        console.log('- Camera position:', { x: this.camera.x, y: this.camera.y, zoom: this.camera.zoom });
+        console.log('- Grid config:', {
+            gridSize: this.options.gridSize,
+            gridWidth: this.options.gridWidth,
+            gridHeight: this.options.gridHeight,
+            buildArea: {
+                width: this.options.gridWidth * this.options.gridSize,
+                height: this.options.gridHeight * this.options.gridSize
+            }
+        });
+    }
+
+    // Debug methods to allow testing (expose private methods for debugging)
+    public testHandleMouseMove(worldPos: Vector, screenPos: Vector): void {
+        this.handleMouseMove(worldPos, screenPos);
+    }
+
+    public testHandleLeftClick(worldPos: Vector, screenPos: Vector): void {
+        this.handleLeftClick(worldPos, screenPos);
+    }
+
+    public testIsPositionWithinBounds(position: Vector, blockDefinition: any): boolean {
+        return this.isPositionWithinBounds(position, blockDefinition);
     }
 }

@@ -88,7 +88,8 @@ export class RenderingEngine {
             throw error;
         }
     } private async createPixiApplication(): Promise<void> {
-        // Ensure container has layout before measuring
+        // Ensure container has layout before measuring - wait multiple frames
+        await new Promise(resolve => requestAnimationFrame(resolve));
         await new Promise(resolve => requestAnimationFrame(resolve));
 
         // Calculate container size with fallbacks
@@ -96,47 +97,90 @@ export class RenderingEngine {
         let width = containerRect.width;
         let height = containerRect.height;
 
-        // If container doesn't have size yet, use computed style or window size
+        console.log(`🔍 DEBUG: Container rect - width: ${width}, height: ${height}`);
+        console.log(`🔍 DEBUG: Container clientWidth/Height: ${this.domContainer.clientWidth}x${this.domContainer.clientHeight}`);
+        console.log(`🔍 DEBUG: Container offsetWidth/Height: ${this.domContainer.offsetWidth}x${this.domContainer.offsetHeight}`);
+
+        // More robust size detection
         if (width === 0 || height === 0) {
-            const computedStyle = window.getComputedStyle(this.domContainer);
-            width = parseFloat(computedStyle.width) || window.innerWidth;
-            height = parseFloat(computedStyle.height) || window.innerHeight;
+            // Try client dimensions first
+            width = this.domContainer.clientWidth || this.domContainer.offsetWidth;
+            height = this.domContainer.clientHeight || this.domContainer.offsetHeight;
+
+            console.log(`🔍 DEBUG: Using client/offset dimensions - width: ${width}, height: ${height}`);
+
+            // If still zero, use parent container or window
+            if (width === 0 || height === 0) {
+                const parent = this.domContainer.parentElement;
+                if (parent) {
+                    const parentRect = parent.getBoundingClientRect();
+                    width = parentRect.width || window.innerWidth;
+                    height = parentRect.height || window.innerHeight;
+                    console.log(`🔍 DEBUG: Using parent dimensions - width: ${width}, height: ${height}`);
+                } else {
+                    width = window.innerWidth;
+                    height = window.innerHeight;
+                    console.log(`🔍 DEBUG: Using window dimensions - width: ${width}, height: ${height}`);
+                }
+            }
         }
 
         // Ensure minimum size
-        width = Math.max(width, 1);
-        height = Math.max(height, 1);
+        width = Math.max(width, 800); // Use larger minimum for debugging
+        height = Math.max(height, 600);
 
         console.log(`🎨 Creating canvas with dimensions: ${width}x${height}`);
 
-        this.pixiApp = new PixiApplication({
-            width,
-            height,
-            backgroundColor: this.config.backgroundColor,
-            antialias: this.config.antialias,
-            resolution: this.config.resolution,
-            autoDensity: true,
-        });// Clear container and add canvas
-        this.domContainer.innerHTML = '';
-        this.domContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);
+        try {
+            this.pixiApp = new PixiApplication({
+                width,
+                height,
+                backgroundColor: this.config.backgroundColor,
+                antialias: this.config.antialias,
+                resolution: this.config.resolution,
+                autoDensity: true,
+            });
 
-        // Set canvas to fill container exactly without any scaling or distortion
-        const canvas = this.pixiApp.view as HTMLCanvasElement;
-        canvas.style.display = 'block';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.margin = '0';
-        canvas.style.padding = '0';
-        canvas.style.border = 'none';
-        canvas.style.outline = 'none';
+            console.log(`✅ PIXI Application created successfully`);
 
-        // Prevent scrolling and ensure proper positioning
-        this.domContainer.style.overflow = 'hidden';
-        this.domContainer.style.position = 'relative';
-        this.domContainer.style.width = '100%';
-        this.domContainer.style.height = '100%';
+            // Clear container and add canvas
+            this.domContainer.innerHTML = '';
+            this.domContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);            // Set canvas to fill container exactly without any scaling or distortion
+            const canvas = this.pixiApp.view as HTMLCanvasElement;
+            canvas.style.display = 'block';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.margin = '0';
+            canvas.style.padding = '0';
+            canvas.style.outline = 'none';
 
-        console.log(`🎨 Canvas initialized: ${width}x${height} (resolution: ${this.config.resolution})`);
+            console.log(`✅ Canvas appended to container`);
+            console.log(`🔍 Canvas actual dimensions: ${canvas.width}x${canvas.height}`);
+
+            // Prevent scrolling and ensure proper positioning
+            this.domContainer.style.overflow = 'hidden';
+            this.domContainer.style.position = 'relative';
+            this.domContainer.style.width = '100%';
+            this.domContainer.style.height = '100%';
+
+            console.log(`🎨 Canvas initialized: ${width}x${height} (resolution: ${this.config.resolution})`);
+
+            // Force a render to ensure canvas is visible
+            this.pixiApp.renderer.render(this.pixiApp.stage);
+            console.log(`✅ Initial render forced`);
+
+            // Add a timeout to check canvas visibility
+            setTimeout(() => {
+                console.log(`🔍 Post-init canvas check:`);
+                console.log(`  - Canvas in DOM:`, document.contains(canvas));
+                console.log(`  - Canvas visible:`, canvas.offsetWidth > 0 && canvas.offsetHeight > 0);
+                console.log(`  - Canvas computed style:`, window.getComputedStyle(canvas));
+            }, 100);
+
+        } catch (error) {
+            console.error(`❌ Error creating PIXI Application:`, error);
+            throw error;
+        }
     } private setupContainers(): void {
         if (!this.pixiApp) return;
 

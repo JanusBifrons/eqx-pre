@@ -8,12 +8,27 @@ import { shipBuilderAdapter } from '../../ui/mui/ShipBuilderAdapter';
 export const ShipBuilderPage: React.FC = () => {
     const { containerRef, isLoading, loadDemo, cleanup } = useDemoContainer();
 
+    console.log('🔧 ShipBuilderPage: Component rendered, isLoading:', isLoading);
+
+    // Add an immediate test to see if JavaScript is running
+    if (typeof window !== 'undefined') {
+        console.log('🔧 ShipBuilderPage: Window object available, page is running in browser');
+        // Try to add a marker to the document title so we can see it
+        document.title = `Ship Builder - Debug Mode ${Date.now()}`;
+    }
+
     useEffect(() => {
+        console.log('🔧 ShipBuilderPage: useEffect triggered');
+
         // Initialize the demo and connect the adapter
         const initializeWithAdapter = async (container?: HTMLDivElement) => {
-            if (!container) return;
-
+            console.log('🔧 ShipBuilderPage: initializeWithAdapter called with container:', container);
+            if (!container) {
+                console.log('❌ ShipBuilderPage: No container provided');
+                return;
+            } console.log('🔧 ShipBuilderPage: About to call initializeShipBuilderDemo');
             const demo = await initializeShipBuilderDemo(container);
+            console.log('🔧 ShipBuilderPage: initializeShipBuilderDemo completed, demo:', demo);
 
             // Connect the adapter to the PIXI.js ShipBuilder
             if (demo && demo.getShipBuilder) {
@@ -25,6 +40,7 @@ export const ShipBuilderPage: React.FC = () => {
             return demo; // Return the demo instance for cleanup
         };
 
+        console.log('🔧 ShipBuilderPage: About to call loadDemo');
         loadDemo(initializeWithAdapter);
 
         // Cleanup when component unmounts
@@ -35,14 +51,21 @@ export const ShipBuilderPage: React.FC = () => {
 
     return (
         <div className="relative w-full h-full overflow-hidden">
-            <LoadingOverlay isLoading={isLoading} demoName="Ship Builder" />
-            {/* Canvas Container */}
-            <div ref={containerRef} className="w-full h-full" />
+            <LoadingOverlay isLoading={isLoading} demoName="Ship Builder" />            {/* Canvas Container */}
+            <div
+                ref={containerRef}
+                className="w-full h-full"
+                style={{
+                    backgroundColor: '#0a0a0a',
+                    minHeight: '400px' // Ensure minimum height
+                }}
+            />
 
             {/* MUI Overlay - only render when not loading */}
-            {!isLoading && (<div className="absolute inset-0 pointer-events-none">
-                <ShipBuilderBridge />
-            </div>
+            {!isLoading && (
+                <div className="absolute inset-0 pointer-events-none">
+                    <ShipBuilderBridge />
+                </div>
             )}
         </div>
     );

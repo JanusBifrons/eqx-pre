@@ -13,7 +13,6 @@ export class BlockPreview extends BaseUIComponent {
         this.worldContainer = worldContainer;
         this.indicator = new Graphics();
     } public showPreview(blockType: string): void {
-        console.log(`🔄 BlockPreview: showPreview(${blockType})`);
         this.hidePreview();
 
         const definition = BlockDefinitions.get(blockType);
@@ -43,9 +42,6 @@ export class BlockPreview extends BaseUIComponent {
             this.previewBlock.container.y = -10000;
 
             this.worldContainer.addChild(this.previewBlock.container);
-            console.log(`✅ BlockPreview: preview created for ${blockType}, container added to world`);
-        } else {
-            console.warn(`❌ BlockPreview: No definition found for ${blockType}`);
         }
     } public hidePreview(): void {
         if (this.previewBlock) {
@@ -53,19 +49,42 @@ export class BlockPreview extends BaseUIComponent {
             this.previewBlock = null;
         }
         // Clear indicator reference since it gets destroyed with the preview block
-        this.indicator = new Graphics();
-    } public refreshPreview(blockType: string): void {
-        // Refresh the preview to ensure it's in a clean state        // Always recreate the preview to handle any state inconsistencies
-        this.showPreview(blockType);
-    }
+        this.indicator = new Graphics();    }    public refreshPreview(blockType: string): void {
+        console.log('🔄 BlockPreview.refreshPreview called', {
+            blockType,
+            hadPreviewBlock: !!this.previewBlock,
+            worldContainerChildren: this.worldContainer.children.length
+        });
+        
+        // Force cleanup of any existing preview before creating new one
+        if (this.previewBlock) {
+            console.log('🔄 Cleaning up existing preview block');
+            this.hidePreview();
+        }
+        
+        // Small delay to ensure cleanup completes before recreation
+        setTimeout(() => {
+            console.log('🔄 Creating new preview block after cleanup');
+            this.showPreview(blockType);
+            
+            console.log('🔄 BlockPreview.refreshPreview completed', {
+                hasPreviewBlock: !!this.previewBlock,
+                worldContainerChildren: this.worldContainer.children.length
+            });
+        }, 5);
+    }public updatePosition(x: number, y: number, isValid: boolean, isWithinBounds: boolean, isOccupied: boolean): void {
+        console.log('BlockPreview.updatePosition called', {
+            position: { x, y },
+            isValid,
+            isWithinBounds,
+            isOccupied,
+            hasPreviewBlock: !!this.previewBlock
+        });
 
-    public updatePosition(x: number, y: number, isValid: boolean, isWithinBounds: boolean, isOccupied: boolean): void {
         if (!this.previewBlock) {
-            console.warn(`❌ BlockPreview: updatePosition called but no preview block exists`);
+            console.warn('BlockPreview.updatePosition: No preview block exists');
             return;
         }
-
-        console.log(`🔄 BlockPreview: updatePosition(${x.toFixed(1)}, ${y.toFixed(1)}, valid=${isValid})`);
 
         this.previewBlock.setGridPosition({ x, y });
         this.previewBlock.container.x = x;
@@ -87,11 +106,8 @@ export class BlockPreview extends BaseUIComponent {
             }
             this.updateIndicatorColor(indicatorColor);
         }
-    }
-
-    private updateIndicatorColor(color: number): void {
+    } private updateIndicatorColor(color: number): void {
         if (!this.previewBlock || !this.indicator) {
-            console.warn('❌ BlockPreview: updateIndicatorColor called but previewBlock or indicator is null');
             return;
         }
 
@@ -184,5 +200,13 @@ export class BlockPreview extends BaseUIComponent {
 
     resize(_width: number, _height: number): void {
         // Block preview doesn't need to be repositioned on resize
+    }
+
+    public hasPreviewBlock(): boolean {
+        return this.previewBlock !== null;
+    }
+
+    public getPreviewBlock(): Block | null {
+        return this.previewBlock;
     }
 }

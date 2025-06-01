@@ -7,6 +7,7 @@ import { EntityManager } from '@/entities/EntityManager';
 import { Block } from '@/entities/Block';
 import { BlockDefinitions } from '@/entities/BlockDefinitions';
 import { Ship } from '@/entities/Ship';
+import { createTestRunner } from '@/debug/ship-builder-test';
 
 export class ShipBuilderDemo {
     private application: Application;
@@ -38,30 +39,33 @@ export class ShipBuilderDemo {
     private async initialize(): Promise<void> {
         // Start the application (this registers services)
         await this.application.start();        // Get the rendering engine for advanced features
-        const renderingEngine = this.application.getRenderingEngine();        // Set camera for ship builder (much more zoomed out for better overview)
+        const renderingEngine = this.application.getRenderingEngine();
+
+        // Reset camera to normal scale - let ShipBuilder handle its own camera
         renderingEngine.setCamera({
             x: 0,
             y: 0,
-            zoom: 0.25
+            zoom: 1.0  // Use normal scale at application level
         });
 
         // Now we can create EntityManager since application service is registered
         this.entityManager = new EntityManager();
-        this.shipSystem = new ShipSystem(this.physicsEngine);
-
-        // Get the game container from the application
+        this.shipSystem = new ShipSystem(this.physicsEngine);        // Get the game container from the application
         this.gameContainer = this.application.getGameContainer();
 
         // Center the game container
-        const pixiApp = this.application.getPixiApp(); this.gameContainer.x = pixiApp.screen.width / 2;
+        const pixiApp = this.application.getPixiApp();
+        this.gameContainer.x = pixiApp.screen.width / 2;
         this.gameContainer.y = pixiApp.screen.height / 2; this.shipBuilder = new ShipBuilder(this.gameContainer, {
             gridSize: 32,
-            gridWidth: 25,
-            gridHeight: 15,
+            gridWidth: 50,  // Increased from 25
+            gridHeight: 30, // Increased from 15
             snapToGrid: true,
-            showGrid: false,  // Grid is now disabled to resolve mouse tracking issues
+            showGrid: true,  // Enable grid to help with positioning
             showConnectionPoints: true
-        });        // Ensure proper sizing for the current screen
+        });
+
+        // Ensure proper sizing for the current screen
         this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height);
 
         // Register resize callback to keep ship builder UI synchronized
@@ -70,46 +74,72 @@ export class ShipBuilderDemo {
         });
 
         this.setupDemo();
-    } private setupDemo(): void {
-        // Don't create demo ship automatically - let user create it manually
-        // This prevents unnecessary physics collisions when ship builder loads
-        // this.createDemoShip();
+    }    private setupDemo(): void {
+        // Create a small demo ship to start with so there's something to interact with
+        this.createDemoShip();
 
-        // Register systems with the Application's GameLoop instead of using separate ticker
-        // This prevents duplicate update loops that cause rendering conflicts
-        const gameLoop = this.application.getGameLoop();
+        // Manual update loop for ship physics
+        const updateLoop = () => {
+            this.shipSystem.update(1/60); // Assuming 60 FPS
+            requestAnimationFrame(updateLoop);
+        };
+        updateLoop();
 
-        // Register ship builder demo system
-        gameLoop.addSystem({
-            name: 'ship-builder-demo',
-            update: (deltaTime: number) => this.update(deltaTime),
-            destroy: () => {
-                // Cleanup handled in main destroy method
-            }
-        });
-
-        // Add keyboard controls
-        this.setupControls();// Expose test methods globally for debugging
-        (window as any).shipBuilderDemo = {
-            testConnections: () => this.shipBuilder.testConnectionSystem(),
-            repairConnections: () => this.shipBuilder.repairConnections(),
-            getShip: () => this.shipBuilder.getShip(),
-            clearShip: () => this.shipBuilder.clearShip(),
-            createDemoShip: () => this.createDemoShip()  // Allow manual demo ship creation
-        }; console.log('Ship Builder Demo initialized!');
-        console.log('Controls:');
-        console.log('- Click blocks in palette to select');
-        console.log('- Click in grid to place blocks');
-        console.log('- Use Build/Test buttons to switch modes');
-        console.log('Debug methods available:');
-        console.log('- shipBuilderDemo.testConnections() - Test connection system');
-        console.log('- shipBuilderDemo.repairConnections() - Repair ship connections');
-        console.log('- shipBuilderDemo.getShip() - Get current ship');
-        console.log('- shipBuilderDemo.clearShip() - Clear current ship');
-        console.log('- shipBuilderDemo.createDemoShip() - Create sample ship with physics');
+        // Add automatic diagnostic tests to help identify hover preview issues
+        this.runInitialDiagnostics();
     }
 
-    private createDemoShip(): void {
+    /**
+     * Run automatic diagnostics when demo loads to help identify issues
+     */
+    private async runInitialDiagnostics(): Promise<void> {
+        console.log('\n🔍 RUNNING INITIAL SHIP BUILDER DIAGNOSTICS');
+        console.log('='.repeat(50));
+        
+        try {
+            // Wait a moment for everything to initialize
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Test 1: Check initial state using public methods
+            console.log('\n📋 Initial System State:');
+            const initialState = {
+                hasShipBuilder: !!this.shipBuilder,
+                selectedBlockType: this.shipBuilder?.getSelectedBlockType(),
+                isBuildingMode: this.shipBuilder?.isBuildingMode(),
+                shipBlockCount: this.shipBuilder?.getShip()?.blocks?.size || 0
+            };
+            console.log(initialState);
+            
+            // Test 2: Try selecting a block
+            console.log('\n🎯 Testing Block Selection:');
+            this.shipBuilder.selectBlockType('hull_basic');
+            
+            const afterSelection = {
+                selectedBlockType: this.shipBuilder.getSelectedBlockType(),
+                isBuildingMode: this.shipBuilder.isBuildingMode()
+            };
+            console.log(afterSelection);
+            
+            // Test 3: Call debug system state for comprehensive info
+            console.log('\n🔧 Full System State Debug:');
+            this.shipBuilder.debugSystemState();
+            
+            // Instructions for user testing
+            console.log('\n📝 NEXT STEPS FOR USER TESTING:');
+            console.log('1. Open browser console to see this output');
+            console.log('2. Try hovering over the grid - preview blocks should appear');
+            console.log('3. Click to place a block');
+            console.log('4. Try hovering again - this is where the issue occurs');
+            console.log('5. Run shipBuilderDemo.runTests() for comprehensive analysis');
+            console.log('\n🐛 If hover preview stops working after placing a block,');
+            console.log('   run: shipBuilderDemo.runTests() for detailed diagnosis');
+            
+        } catch (error) {
+            console.error('❌ Diagnostics failed:', error);
+        }
+    }
+
+    public createDemoShip(): void {
         // Create a sample ship to demonstrate the system
         const ship = new Ship();        // Create hull blocks - using standard 32x32 grid positions
         const hullCenter = new Block(
@@ -287,9 +317,15 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
     // Create required DOM elements
     let gameContainer: HTMLElement;
 
+    console.log(`🚀 Initializing Ship Builder Demo...`);
+    console.log(`🔍 Container provided:`, container);
+
     if (container) {
         // Use provided container
         gameContainer = container;
+        console.log(`🔍 Using provided container:`, gameContainer);
+        console.log(`🔍 Container dimensions:`, gameContainer.getBoundingClientRect());
+
         gameContainer.style.width = '100%';
         gameContainer.style.height = '100%';
         gameContainer.style.display = 'flex';
@@ -297,6 +333,8 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
         gameContainer.style.alignItems = 'center';
         gameContainer.style.overflow = 'hidden';
         gameContainer.style.backgroundColor = '#0a0a0a';
+
+        console.log(`✅ Container styles applied`);
     } else {
         // Create new container and append to body (fallback for legacy usage)
         gameContainer = document.createElement('div');
@@ -315,8 +353,17 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
         document.body.style.padding = '0';
         document.body.style.overflow = 'hidden';
         document.body.style.backgroundColor = '#0a0a0a';
-    } const demo = new ShipBuilderDemo(gameContainer);
-    await demo.waitForInitialization();    // Add some helpful console methods for debugging
+    }
+
+    console.log(`🔍 Final container dimensions:`, gameContainer.getBoundingClientRect());
+
+    const demo = new ShipBuilderDemo(gameContainer);
+    console.log(`✅ ShipBuilderDemo instance created`);
+
+    await demo.waitForInitialization();
+    console.log(`✅ ShipBuilderDemo initialization complete`);
+
+    // Add some helpful console methods for debugging
     (window as any).shipBuilderDemo = demo;
     (window as any).getShip = () => demo.getShipBuilder().getShip();
     (window as any).getShipStats = () => demo.getShipBuilder().getShip().calculateStats();
@@ -337,7 +384,57 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
             console.error('❌ Component test failed:', error);
             return false;
         }
-    }; console.log('Ship Builder Demo ready!');
+    };    // Expose demo interface globally for debugging and interaction
+    (window as any).shipBuilderDemo = {
+        testConnections: () => demo.getShipBuilder().testConnectionSystem(),
+        repairConnections: () => demo.getShipBuilder().repairConnections(),
+        getShip: () => demo.getShipBuilder().getShip(),
+        clearShip: () => demo.getShipBuilder().clearShip(),
+        createDemoShip: () => demo.createDemoShip(),
+        debugState: () => demo.getShipBuilder().debugSystemState(),
+        selectBlock: (blockType: string) => demo.getShipBuilder().selectBlockType(blockType),
+        runTests: async () => {
+            const testRunner = createTestRunner(demo.getShipBuilder());
+            await testRunner.runAllTests();
+        },
+        
+        // Add automatic issue reproduction
+        reproduceBug: async () => {
+            console.log('\n🐛 REPRODUCING HOVER PREVIEW BUG');
+            console.log('='.repeat(40));
+            
+            const shipBuilder = demo.getShipBuilder();
+            
+            // Step 1: Select a block
+            console.log('Step 1: Selecting hull_basic block...');
+            shipBuilder.selectBlockType('hull_basic');
+            shipBuilder.debugSystemState();
+            
+            // Step 2: Simulate hover (before placement)
+            console.log('\nStep 2: Testing hover BEFORE placing block...');
+            const testPos1 = { x: 64, y: 64 }; // 2 grid cells from center
+            const testPos1Screen = { x: 800, y: 500 }; // Screen position
+            shipBuilder.testHandleMouseMove(testPos1, testPos1Screen);
+            shipBuilder.debugSystemState();
+            
+            // Step 3: Place a block
+            console.log('\nStep 3: Placing first block...');
+            shipBuilder.testHandleLeftClick(testPos1, testPos1Screen);
+            shipBuilder.debugSystemState();
+            
+            // Step 4: Try to hover again (this should fail)
+            console.log('\nStep 4: Testing hover AFTER placing block...');
+            const testPos2 = { x: 96, y: 64 }; // Adjacent position
+            const testPos2Screen = { x: 832, y: 500 };
+            shipBuilder.testHandleMouseMove(testPos2, testPos2Screen);
+            shipBuilder.debugSystemState();
+            
+            console.log('\n📊 Bug reproduction complete. Check the debug output above.');
+            console.log('🔍 Look for differences in preview block state between steps 2 and 4.');
+        }
+    };
+
+    console.log('Ship Builder Demo ready!');
     console.log('Access demo via window.shipBuilderDemo');
     console.log('Get current ship stats: getShipStats()');
     console.log('Validate current ship: validateShip()');
