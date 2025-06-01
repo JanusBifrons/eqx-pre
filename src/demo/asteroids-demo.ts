@@ -34,7 +34,7 @@ export async function runAsteroidsDemo(container?: HTMLElement) {
 
     // If container is provided, append the game to it
     let gameContainer: HTMLElement;
-    
+
     if (container) {
         gameContainer = container;
     } else {

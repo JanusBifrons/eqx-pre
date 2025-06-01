@@ -18,7 +18,7 @@ export async function runEnhancedDemo(container?: HTMLElement) {
 
     // If container is provided, use it
     let gameContainer: HTMLElement;
-    
+
     if (container) {
         gameContainer = container;
     } else {

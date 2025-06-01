@@ -104,7 +104,7 @@ export class Application implements IApplication {
 
     getGameState(): GameState {
         return this.gameState;
-    }    private async initializePixi(): Promise<void> {
+    } private async initializePixi(): Promise<void> {
         this.pixiApp = new PixiApplication({
             width: this.config.width,
             height: this.config.height,
@@ -116,7 +116,7 @@ export class Application implements IApplication {
 
         // Add the canvas to the DOM
         let gameContainer: HTMLElement;
-        
+
         if (this.domContainer) {
             gameContainer = this.domContainer;
         } else {

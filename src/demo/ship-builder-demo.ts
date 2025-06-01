@@ -20,7 +20,7 @@ export class ShipBuilderDemo {
 
     constructor(domContainer?: HTMLElement) {
         this.domContainer = domContainer;
-        
+
         // Create Application instance which will register itself in ServiceContainer
         this.application = new Application({
             width: 1600,
@@ -272,7 +272,7 @@ export class ShipBuilderDemo {
 export async function initializeShipBuilderDemo(container?: HTMLElement): Promise<ShipBuilderDemo> {
     // Create required DOM elements
     let gameContainer: HTMLElement;
-    
+
     if (container) {
         // Use provided container
         gameContainer = container;
@@ -301,7 +301,7 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
         document.body.style.padding = '0';
         document.body.style.overflow = 'hidden';
         document.body.style.backgroundColor = '#0a0a0a';
-    }    const demo = new ShipBuilderDemo(gameContainer);
+    } const demo = new ShipBuilderDemo(gameContainer);
     await demo.waitForInitialization();// Add some helpful console methods for debugging
     (window as any).shipBuilderDemo = demo;
     (window as any).getShip = () => demo.getShipBuilder().getShip();

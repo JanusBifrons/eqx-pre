@@ -42,7 +42,7 @@ cd "c:\Users\alecv\Desktop\eqx-pre\eqx-pre"; npx tsc --noEmit
 ```
 
 ## && Usage Counter 📊
-**Times `&&` has been incorrectly used in this project: 1**
+**Times `&&` has been incorrectly used in this project: 2**
 
 *This counter tracks how many times the wrong command chaining syntax has been used. Each time `&&` is used instead of `;`, we increment this counter as a reminder to follow PowerShell syntax.*
 
