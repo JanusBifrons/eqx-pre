@@ -3,7 +3,7 @@
 ## ⚠️ CRITICAL POWERSHELL RULES ⚠️
 
 ### ⚠️ MISTAKE COUNTER ⚠️
-**Times Claude has incorrectly used && in PowerShell: 7** 
+**Times Claude has incorrectly used && in PowerShell: 8** 
 (User specifically asked to stop using && multiple times)
 
 ### Command Chaining Syntax

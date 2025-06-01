@@ -5,7 +5,10 @@ export class ServiceContainer implements IServiceContainer {
 
     register<T>(key: string, service: T): void {
         if (this.services.has(key)) {
-            console.warn(`Service with key '${key}' is already registered. Overwriting.`);
+            // Only warn for certain critical services that shouldn't be recreated
+            if (['application', 'gameLoop', 'config'].includes(key)) {
+                console.warn(`⚠️ Critical service '${key}' is being overwritten. This may indicate an infinite loop or multiple initialization.`);
+            }
         }
         this.services.set(key, service);
     }

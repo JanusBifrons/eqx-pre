@@ -6,7 +6,7 @@ import { ShipBuilderBridge } from '../../ui/mui/ShipBuilderBridge';
 import { shipBuilderAdapter } from '../../ui/mui/ShipBuilderAdapter';
 
 export const ShipBuilderPage: React.FC = () => {
-    const { containerRef, isLoading, loadDemo } = useDemoContainer(); useEffect(() => {
+    const { containerRef, isLoading, loadDemo, cleanup } = useDemoContainer(); useEffect(() => {
         // Initialize the demo and connect the adapter
         const initializeWithAdapter = async (container?: HTMLDivElement) => {
             if (!container) return;
@@ -19,10 +19,17 @@ export const ShipBuilderPage: React.FC = () => {
                 shipBuilderAdapter.setShipBuilder(shipBuilder);
                 console.log('✅ MUI Adapter connected to PIXI.js ShipBuilder');
             }
+
+            return demo; // Return the demo instance for cleanup
         };
 
         loadDemo(initializeWithAdapter);
-    }, [loadDemo]);
+
+        // Cleanup when component unmounts
+        return () => {
+            cleanup();
+        };
+    }, []); // Remove loadDemo dependency to prevent infinite loop
 
     return (
         <div className="relative w-full h-full overflow-hidden">
