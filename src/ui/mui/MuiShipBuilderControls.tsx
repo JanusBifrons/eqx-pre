@@ -8,7 +8,6 @@ import {
     Switch,
     FormControlLabel,
     Button,
-    Slider,
     styled,
     alpha,
     IconButton,
@@ -126,11 +125,7 @@ interface ShipBuilderControlsProps {
     snapToGrid: boolean;
     onShowGridChange: (show: boolean) => void;
     onShowConnectionPointsChange: (show: boolean) => void;
-    onSnapToGridChange: (snap: boolean) => void;
-
-    // Camera Controls
-    zoom: number;
-    onZoomChange: (zoom: number) => void;
+    onSnapToGridChange: (snap: boolean) => void;    // Camera Controls - zoom is now fixed at 1.0
     onZoomIn: () => void;
     onZoomOut: () => void;
     onCenterView: () => void;
@@ -164,11 +159,8 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
     showGrid,
     showConnectionPoints,
     snapToGrid,
-    onShowGridChange,
-    onShowConnectionPointsChange,
+    onShowGridChange, onShowConnectionPointsChange,
     onSnapToGridChange,
-    zoom,
-    onZoomChange,
     onZoomIn,
     onZoomOut,
     onCenterView,
@@ -185,18 +177,12 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
     className,
 }) => {
     const [activeTab, setActiveTab] = useState(0);
-    const [isCollapsed, setIsCollapsed] = useState(true);
-
-    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    const [isCollapsed, setIsCollapsed] = useState(true); const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setActiveTab(newValue);
         // Expand panel when changing tabs
         if (isCollapsed) {
             setIsCollapsed(false);
         }
-    };
-
-    const handleZoomSliderChange = (_event: Event, newValue: number | number[]) => {
-        onZoomChange(Array.isArray(newValue) ? newValue[0] : newValue);
     };
 
     const toggleCollapse = () => {
@@ -405,40 +391,25 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                         }}
                     >
                         📷 Camera Controls
-                    </Typography>
+                    </Typography>                    <ControlGroup>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{ mb: 2, color: spaceColors.text.primary, fontWeight: 'bold' }}
+                        >
+                            Zoom Level: 1.0x (Fixed)
+                        </Typography>
 
-                    <ControlGroup>                    <Typography
-                        variant="subtitle2"
-                        sx={{ mb: 2, color: spaceColors.text.primary, fontWeight: 'bold' }}
-                    >
-                        Zoom Level: {(zoom || 1.0).toFixed(1)}x
-                    </Typography>
-
-                        <Slider
-                            value={zoom || 1.0}
-                            onChange={handleZoomSliderChange}
-                            min={0.5}
-                            max={3.0}
-                            step={0.1}
-                            marks={[
-                                { value: 0.5, label: '0.5x' },
-                                { value: 1.0, label: '1x' },
-                                { value: 2.0, label: '2x' },
-                                { value: 3.0, label: '3x' },
-                            ]}
+                        <Typography
+                            variant="body2"
                             sx={{
                                 mb: 2,
-                                '& .MuiSlider-thumb': {
-                                    backgroundColor: spaceColors.primary.main,
-                                },
-                                '& .MuiSlider-track': {
-                                    backgroundColor: spaceColors.primary.main,
-                                },
-                                '& .MuiSlider-rail': {
-                                    backgroundColor: alpha(spaceColors.primary.main, 0.3),
-                                },
+                                color: spaceColors.text.secondary,
+                                fontStyle: 'italic',
+                                textAlign: 'center'
                             }}
-                        />
+                        >
+                            Zoom is fixed at 1.0x for optimal building experience
+                        </Typography>
 
                         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                             <Button
@@ -446,14 +417,11 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                                 size="small"
                                 startIcon={<ZoomOutIcon />}
                                 onClick={onZoomOut}
+                                disabled={true}
                                 sx={{
                                     flex: 1,
-                                    borderColor: spaceColors.primary.main,
-                                    color: spaceColors.primary.main,
-                                    '&:hover': {
-                                        borderColor: spaceColors.primary.light,
-                                        backgroundColor: alpha(spaceColors.primary.main, 0.1),
-                                    },
+                                    borderColor: alpha(spaceColors.primary.main, 0.3),
+                                    color: alpha(spaceColors.primary.main, 0.3),
                                 }}
                             >
                                 Zoom Out
@@ -463,14 +431,11 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                                 size="small"
                                 startIcon={<ZoomInIcon />}
                                 onClick={onZoomIn}
+                                disabled={true}
                                 sx={{
                                     flex: 1,
-                                    borderColor: spaceColors.primary.main,
-                                    color: spaceColors.primary.main,
-                                    '&:hover': {
-                                        borderColor: spaceColors.primary.light,
-                                        backgroundColor: alpha(spaceColors.primary.main, 0.1),
-                                    },
+                                    borderColor: alpha(spaceColors.primary.main, 0.3),
+                                    color: alpha(spaceColors.primary.main, 0.3),
                                 }}
                             >
                                 Zoom In

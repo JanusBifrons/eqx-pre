@@ -16,7 +16,7 @@ export interface ICamera {
     y: number;
     zoom: number;
     pan(deltaX: number, deltaY: number): void;
-    zoomTo(zoom: number, centerX?: number, centerY?: number): void;
+    zoomTo(): void;
     reset(): void;
     worldToScreen(worldPos: { x: number; y: number }): { x: number; y: number };
     screenToWorld(screenPos: { x: number; y: number }): { x: number; y: number };

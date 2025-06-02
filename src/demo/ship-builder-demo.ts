@@ -8,6 +8,8 @@ import { Block } from '@/entities/Block';
 import { BlockDefinitions } from '@/entities/BlockDefinitions';
 import { Ship } from '@/entities/Ship';
 import { createTestRunner } from '@/debug/ship-builder-test';
+import { ResponsiveTest } from '@/debug/responsive-test';
+import '@/debug/quick-responsive-test'; // Auto-register quick test
 
 export class ShipBuilderDemo {
     private application: Application;
@@ -74,13 +76,13 @@ export class ShipBuilderDemo {
         });
 
         this.setupDemo();
-    }    private setupDemo(): void {
+    } private setupDemo(): void {
         // Create a small demo ship to start with so there's something to interact with
         this.createDemoShip();
 
         // Manual update loop for ship physics
         const updateLoop = () => {
-            this.shipSystem.update(1/60); // Assuming 60 FPS
+            this.shipSystem.update(1 / 60); // Assuming 60 FPS
             requestAnimationFrame(updateLoop);
         };
         updateLoop();
@@ -95,11 +97,11 @@ export class ShipBuilderDemo {
     private async runInitialDiagnostics(): Promise<void> {
         console.log('\n🔍 RUNNING INITIAL SHIP BUILDER DIAGNOSTICS');
         console.log('='.repeat(50));
-        
+
         try {
             // Wait a moment for everything to initialize
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             // Test 1: Check initial state using public methods
             console.log('\n📋 Initial System State:');
             const initialState = {
@@ -109,21 +111,21 @@ export class ShipBuilderDemo {
                 shipBlockCount: this.shipBuilder?.getShip()?.blocks?.size || 0
             };
             console.log(initialState);
-            
+
             // Test 2: Try selecting a block
             console.log('\n🎯 Testing Block Selection:');
             this.shipBuilder.selectBlockType('hull_basic');
-            
+
             const afterSelection = {
                 selectedBlockType: this.shipBuilder.getSelectedBlockType(),
                 isBuildingMode: this.shipBuilder.isBuildingMode()
             };
             console.log(afterSelection);
-            
+
             // Test 3: Call debug system state for comprehensive info
             console.log('\n🔧 Full System State Debug:');
             this.shipBuilder.debugSystemState();
-            
+
             // Instructions for user testing
             console.log('\n📝 NEXT STEPS FOR USER TESTING:');
             console.log('1. Open browser console to see this output');
@@ -133,7 +135,7 @@ export class ShipBuilderDemo {
             console.log('5. Run shipBuilderDemo.runTests() for comprehensive analysis');
             console.log('\n🐛 If hover preview stops working after placing a block,');
             console.log('   run: shipBuilderDemo.runTests() for detailed diagnosis');
-            
+
         } catch (error) {
             console.error('❌ Diagnostics failed:', error);
         }
@@ -294,6 +296,10 @@ export class ShipBuilderDemo {
         return this.application.getPixiApp();
     }
 
+    public getApplication() {
+        return this.application;
+    }
+
     public getShipBuilder(): ShipBuilder {
         return this.shipBuilder;
     }
@@ -397,48 +403,52 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
             const testRunner = createTestRunner(demo.getShipBuilder());
             await testRunner.runAllTests();
         },
-        
+        // Add responsive test
+        runResponsiveTests: async () => {
+            const responsiveTest = new ResponsiveTest(demo.getApplication().getRenderingEngine(), demo.getShipBuilder());
+            await responsiveTest.runAllTests();
+        },
+
         // Add automatic issue reproduction
         reproduceBug: async () => {
             console.log('\n🐛 REPRODUCING HOVER PREVIEW BUG');
             console.log('='.repeat(40));
-            
+
             const shipBuilder = demo.getShipBuilder();
-            
+
             // Step 1: Select a block
             console.log('Step 1: Selecting hull_basic block...');
             shipBuilder.selectBlockType('hull_basic');
             shipBuilder.debugSystemState();
-            
+
             // Step 2: Simulate hover (before placement)
             console.log('\nStep 2: Testing hover BEFORE placing block...');
             const testPos1 = { x: 64, y: 64 }; // 2 grid cells from center
             const testPos1Screen = { x: 800, y: 500 }; // Screen position
             shipBuilder.testHandleMouseMove(testPos1, testPos1Screen);
             shipBuilder.debugSystemState();
-            
+
             // Step 3: Place a block
             console.log('\nStep 3: Placing first block...');
             shipBuilder.testHandleLeftClick(testPos1, testPos1Screen);
             shipBuilder.debugSystemState();
-            
+
             // Step 4: Try to hover again (this should fail)
             console.log('\nStep 4: Testing hover AFTER placing block...');
             const testPos2 = { x: 96, y: 64 }; // Adjacent position
             const testPos2Screen = { x: 832, y: 500 };
             shipBuilder.testHandleMouseMove(testPos2, testPos2Screen);
             shipBuilder.debugSystemState();
-            
+
             console.log('\n📊 Bug reproduction complete. Check the debug output above.');
             console.log('🔍 Look for differences in preview block state between steps 2 and 4.');
         }
-    };
-
-    console.log('Ship Builder Demo ready!');
+    }; console.log('Ship Builder Demo ready!');
     console.log('Access demo via window.shipBuilderDemo');
     console.log('Get current ship stats: getShipStats()');
     console.log('Validate current ship: validateShip()');
     console.log('Test refactored components: testRefactorComponents()');
+    console.log('Run responsive tests: shipBuilderDemo.runResponsiveTests()');
     console.log('Create demo ship: shipBuilderDemo.createDemoShip()');
 
     return demo;

@@ -123,13 +123,11 @@ export class RenderingEngine {
                     console.log(`🔍 DEBUG: Using window dimensions - width: ${width}, height: ${height}`);
                 }
             }
-        }
+        }        // Ensure minimum size but allow flexible dimensions
+        width = Math.max(width, 320); // Minimum width for mobile compatibility
+        height = Math.max(height, 240); // Minimum height for mobile compatibility
 
-        // Ensure minimum size
-        width = Math.max(width, 800); // Use larger minimum for debugging
-        height = Math.max(height, 600);
-
-        console.log(`🎨 Creating canvas with dimensions: ${width}x${height}`);
+        console.log(`🎨 Creating responsive canvas with dimensions: ${width}x${height}`);
 
         try {
             this.pixiApp = new PixiApplication({
@@ -139,9 +137,10 @@ export class RenderingEngine {
                 antialias: this.config.antialias,
                 resolution: this.config.resolution,
                 autoDensity: true,
+                resizeTo: this.domContainer, // Let PIXI handle responsive resizing
             });
 
-            console.log(`✅ PIXI Application created successfully`);
+            console.log(`✅ PIXI Application created successfully with resizeTo option`);
 
             // Clear container and add canvas
             this.domContainer.innerHTML = '';
@@ -153,15 +152,17 @@ export class RenderingEngine {
             canvas.style.margin = '0';
             canvas.style.padding = '0';
             canvas.style.outline = 'none';
+            canvas.style.boxSizing = 'border-box';
 
-            console.log(`✅ Canvas appended to container`);
+            console.log(`✅ Canvas appended to container with responsive styling`);
             console.log(`🔍 Canvas actual dimensions: ${canvas.width}x${canvas.height}`);
 
-            // Prevent scrolling and ensure proper positioning
+            // Ensure container is properly configured for responsive layout
             this.domContainer.style.overflow = 'hidden';
             this.domContainer.style.position = 'relative';
             this.domContainer.style.width = '100%';
             this.domContainer.style.height = '100%';
+            this.domContainer.style.boxSizing = 'border-box';
 
             console.log(`🎨 Canvas initialized: ${width}x${height} (resolution: ${this.config.resolution})`);
 

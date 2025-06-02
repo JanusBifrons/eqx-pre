@@ -448,25 +448,33 @@ export class ShipBuilder {
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
-        // Initialize camera to center on first setup or when camera is at default position
-        if (this.camera.x === 0 && this.camera.y === 0) {
+        // Check if this is initial setup (camera at origin) or a resize
+        const isInitialSetup = this.camera.x === 0 && this.camera.y === 0;
+
+        if (isInitialSetup) {
+            // Initial camera positioning - center the buildable area
             this.camera.initializePosition(screenWidth, screenHeight);
+            console.log(`🎯 Initial camera setup for screen: ${screenWidth}x${screenHeight}`);
+        } else {
+            // Update camera for new screen dimensions while maintaining relative position
+            this.camera.updateScreenDimensions(screenWidth, screenHeight);
+            console.log(`📐 Camera updated for screen resize: ${screenWidth}x${screenHeight}`);
         }
 
         // Resize remaining PIXI.js components
         this.blockPreview.resize(screenWidth, screenHeight);
 
-        // Update construction tape border
+        // Update construction tape border (depends on camera position)
         this.updateConstructionTapeBorder();
 
-        // Now that camera is properly positioned, add the placeable area debug
+        // Update placeable area debug (depends on camera position)
         if (!this.placeableAreaDebug) {
             this.addPlaceableAreaDebug();
         } else {
             this.updatePlaceableAreaDebug();
         }
 
-        console.log(`UI resized for screen: ${screenWidth}x${screenHeight}`);
+        console.log(`✅ UI resized for screen: ${screenWidth}x${screenHeight}, camera at: (${this.camera.x}, ${this.camera.y})`);
     } public destroy(): void {
         // Destroy remaining components
         this.ship.destroy();
@@ -790,13 +798,15 @@ export class ShipBuilder {
         this.options.showConnectionPoints = !this.options.showConnectionPoints;
         // Implementation would need to update connection point visibility
         console.log(`Connection points toggled: ${this.options.showConnectionPoints ? 'enabled' : 'disabled'}`);
-    }    // Camera control methods for adapter integration
+    }    // Camera control methods for adapter integration - simplified for fixed zoom
     public zoomIn(): void {
-        this.camera.zoomTo(0.1);
+        // Zoom is fixed at 1.0, so this is a no-op
+        console.log('Zoom is fixed at 1.0');
     }
 
     public zoomOut(): void {
-        this.camera.zoomTo(-0.1);
+        // Zoom is fixed at 1.0, so this is a no-op
+        console.log('Zoom is fixed at 1.0');
     }
 
     public centerOnShip(): void {
@@ -856,11 +866,10 @@ export class ShipBuilder {
     public getSnapToGrid(): boolean {
         return this.options.snapToGrid;
     } public getZoom(): number {
-        return this.camera.zoom;
-    } public setZoom(zoom: number): void {
-        const currentZoom = this.camera.zoom;
-        const deltaZoom = zoom - currentZoom;
-        this.camera.zoomTo(deltaZoom);
+        return this.camera.zoom; // Always returns 1.0
+    } public setZoom(_zoom: number): void {
+        // Zoom is fixed at 1.0, so this is a no-op
+        console.log('Zoom is fixed at 1.0, cannot change zoom level');
     }
 
     public resetCamera(): void {

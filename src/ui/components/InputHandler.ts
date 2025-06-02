@@ -6,7 +6,6 @@ export class InputHandler extends BaseUIComponent {
     private camera: ICamera;
     private isDragging: boolean = false;
     private lastDragPosition: { x: number; y: number } | null = null;
-    private zoomSpeed: number = 0.1;
     private isPanMode: boolean = false;
     private currentCursor: string = 'default';
 
@@ -73,18 +72,19 @@ export class InputHandler extends BaseUIComponent {
                         this.camera.reset();
                         event.preventDefault();
                     }
-                    break;
-                case 'Equal':
+                    break; case 'Equal':
                 case 'NumpadAdd':
                     if (event.ctrlKey) {
-                        this.camera.zoomTo(this.zoomSpeed);
+                        // Zoom is fixed at 1.0, so this is a no-op
+                        console.log('Zoom is fixed at 1.0');
                         event.preventDefault();
                     }
                     break;
                 case 'Minus':
                 case 'NumpadSubtract':
                     if (event.ctrlKey) {
-                        this.camera.zoomTo(-this.zoomSpeed);
+                        // Zoom is fixed at 1.0, so this is a no-op
+                        console.log('Zoom is fixed at 1.0');
                         event.preventDefault();
                     }
                     break;
@@ -146,13 +146,10 @@ export class InputHandler extends BaseUIComponent {
         this.isDragging = false;
         this.lastDragPosition = null;
         this.updateCursor(); // Reset cursor to appropriate state
-    }
-
-    private onWheel(event: any): void {
+    } private onWheel(event: any): void {
         event.preventDefault();
-        const localPosition = event.data.getLocalPosition(this.container);
-        const zoomDelta = -event.deltaY * this.zoomSpeed * 0.01;
-        this.camera.zoomTo(zoomDelta, localPosition.x, localPosition.y);
+        // Zoom is fixed at 1.0, so wheel scrolling is disabled
+        console.log('Zoom is fixed at 1.0, wheel zoom disabled');
     } resize(_width: number, _height: number): void {
         // Input handler doesn't need resize handling
     }
