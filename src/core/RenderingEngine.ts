@@ -144,20 +144,16 @@ export class RenderingEngine {
 
             // Clear container and add canvas
             this.domContainer.innerHTML = '';
-            this.domContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);            // Set canvas to fill container exactly without any scaling or distortion
+            this.domContainer.appendChild(this.pixiApp.view as HTMLCanvasElement);            // Let PIXI handle canvas sizing, minimal styling interference
             const canvas = this.pixiApp.view as HTMLCanvasElement;
             canvas.style.display = 'block';
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
             canvas.style.margin = '0';
             canvas.style.padding = '0';
             canvas.style.outline = 'none';
             canvas.style.boxSizing = 'border-box';
 
             console.log(`✅ Canvas appended to container with responsive styling`);
-            console.log(`🔍 Canvas actual dimensions: ${canvas.width}x${canvas.height}`);
-
-            // Ensure container is properly configured for responsive layout
+            console.log(`🔍 Canvas actual dimensions: ${canvas.width}x${canvas.height}`);            // Ensure container is properly configured for responsive layout
             this.domContainer.style.overflow = 'hidden';
             this.domContainer.style.position = 'relative';
             this.domContainer.style.width = '100%';
@@ -456,13 +452,8 @@ export class RenderingEngine {
             return;
         }
 
-        // Resize the renderer to match container dimensions
-        this.pixiApp.renderer.resize(roundedWidth, roundedHeight);
-
-        // Ensure canvas maintains proper styling after resize
-        const canvas = this.pixiApp.view as HTMLCanvasElement;
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
+        // Since we're using resizeTo, PIXI handles the resizing automatically
+        // We just need to update our internal state and visuals
 
         // Update camera transform to maintain proper positioning
         this.updateCameraTransform();

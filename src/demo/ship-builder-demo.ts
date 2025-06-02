@@ -17,13 +17,28 @@ export class ShipBuilderDemo {
     private entityManager!: EntityManager;
     private shipSystem!: ShipSystem;
     private shipBuilder!: ShipBuilder;
-    private gameContainer!: Container; private initializationPromise: Promise<void>;
+    private gameContainer!: Container;
+    private initializationPromise: Promise<void>;
 
     constructor(domContainer?: HTMLElement) {
-        // Create Application instance with unified rendering engine
+        // Calculate responsive dimensions based on container or window
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        if (domContainer) {
+            const containerRect = domContainer.getBoundingClientRect();
+            width = containerRect.width || domContainer.clientWidth || width;
+            height = containerRect.height || domContainer.clientHeight || height;
+        }
+
+        // Ensure minimum dimensions for functionality
+        width = Math.max(width, 800);
+        height = Math.max(height, 600);
+
+        // Create Application instance with unified rendering engine - use responsive dimensions
         this.application = new Application({
-            width: 1600,
-            height: 1000,
+            width,
+            height,
             backgroundColor: 0x0a0a0a,
             antialias: true
         }, domContainer);
