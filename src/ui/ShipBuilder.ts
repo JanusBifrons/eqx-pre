@@ -47,6 +47,9 @@ export class ShipBuilder {
     private placeableAreaDebug!: Graphics;
     private cursorDebug!: Graphics;
 
+    // Construction tape border for buildable area
+    private constructionTapeBorder!: Graphics;
+
     // State
     private selectedBlockType: string | null = null;
     private lastMousePosition: Vector | null = null;
@@ -94,17 +97,19 @@ export class ShipBuilder {
         this.debugContainer = new Container();
         this.container.addChild(this.debugContainer);
 
+        // Add permanent construction tape border for buildable area
+        this.addConstructionTapeBorder();
+
         // Add placement area visualization if grid is hidden
         if (!this.options.showGrid) {
             this.addPlacementAreaVisualization();
         }
     } private setupCoreComponents(): void {
         // Initialize camera system
-        this.camera = new CameraController(this.worldContainer);
-
-        // Set up camera transform callback to update debug visuals
+        this.camera = new CameraController(this.worldContainer);        // Set up camera transform callback to update debug visuals
         this.camera.setOnTransformChange(() => {
             this.updatePlaceableAreaDebug();
+            this.updateConstructionTapeBorder();
         });
 
         // Initialize input handling
@@ -134,16 +139,17 @@ export class ShipBuilder {
 
         this.inputHandler.on('escapePressed', () => {
             this.deselectBlockType();
-        });    } private setupDebugVisualization(): void {
+        });
+    } private setupDebugVisualization(): void {
         // Always enable debug visualization for now to help debug the issue
         this.addDebugVisualization();
         this.addCursorDebug();
-        
+
         // Add placeable area debug after a short delay to ensure camera is positioned
         setTimeout(() => {
             this.addPlaceableAreaDebug();
         }, 100);
-    }public selectBlockType(blockType: string): void {
+    } public selectBlockType(blockType: string): void {
         this.selectedBlockType = blockType;
         this.blockPreview.showPreview(blockType);
         console.log(`Selected block type: ${blockType}`);
@@ -179,7 +185,7 @@ export class ShipBuilder {
         if (this.onBlockDeselected) {
             this.onBlockDeselected();
         }
-    }    private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
+    } private handleMouseMove(worldPos: Vector, _screenPos: Vector): void {
         // Track the last mouse position for when we switch block types
         this.lastMousePosition = worldPos;
 
@@ -207,7 +213,7 @@ export class ShipBuilder {
 
         if (!this.selectedBlockType || !this.isBuilding) {
             console.log('handleMouseMove: No block selected or not building', debugInfo);
-            
+
             // Hide preview if no block is selected
             if (!this.selectedBlockType && this.blockPreview.hasPreviewBlock()) {
                 console.log('handleMouseMove: Hiding preview because no block selected');
@@ -260,14 +266,14 @@ export class ShipBuilder {
 
         // Update preview
         this.blockPreview.updatePosition(finalPos.x, finalPos.y, isValid, isWithinBounds, isOccupied);
-    }private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
+    } private handleLeftClick(worldPos: Vector, _screenPos: Vector): void {
         console.log('🖱️ handleLeftClick called', {
             worldPos: { x: worldPos.x, y: worldPos.y },
             selectedBlockType: this.selectedBlockType,
             isBuilding: this.isBuilding,
             hasPreviewBlock: this.blockPreview.hasPreviewBlock()
         });
-        
+
         if (!this.selectedBlockType || !this.isBuilding) {
             // If clicking in building area without selection, potentially deselect
             if (this.selectedBlockType && this.isInBuildingArea(worldPos)) {
@@ -300,10 +306,10 @@ export class ShipBuilder {
 
             // Keep the block type selected for continuous building
             // Refresh the preview to ensure it continues working
-            
+
             // Store the selected block type to ensure it doesn't get lost
             const currentBlockType = this.selectedBlockType;
-            
+
             // Add a small delay to ensure any ongoing operations complete
             setTimeout(() => {
                 console.log('🔄 Refreshing preview after placement', {
@@ -311,10 +317,10 @@ export class ShipBuilder {
                     stillSelected: this.selectedBlockType === currentBlockType,
                     hasPreviewBlock: this.blockPreview.hasPreviewBlock()
                 });
-                
+
                 if (this.selectedBlockType === currentBlockType) {
                     this.blockPreview.refreshPreview(currentBlockType);
-                    
+
                     // Force a position update if we have a last mouse position
                     if (this.lastMousePosition) {
                         console.log('🔄 Forcing position update with last mouse position');
@@ -449,6 +455,9 @@ export class ShipBuilder {
 
         // Resize remaining PIXI.js components
         this.blockPreview.resize(screenWidth, screenHeight);
+
+        // Update construction tape border
+        this.updateConstructionTapeBorder();
 
         // Now that camera is properly positioned, add the placeable area debug
         if (!this.placeableAreaDebug) {
@@ -605,14 +614,106 @@ export class ShipBuilder {
                 graphics.moveTo(x, y - size);
                 graphics.lineTo(x, y);
                 graphics.lineTo(x - size, y);
-                break;
-            case 'bottom-left':
+                break; case 'bottom-left':
                 graphics.moveTo(x + size, y);
                 graphics.lineTo(x, y);
                 graphics.lineTo(x, y - size);
                 break;
         }
-    }    // Public API methods for testing and external use
+    }
+
+    private addConstructionTapeBorder(): void {
+        this.constructionTapeBorder = new Graphics();
+        this.worldContainer.addChild(this.constructionTapeBorder);
+        this.updateConstructionTapeBorder();
+    } private updateConstructionTapeBorder(): void {
+        if (!this.constructionTapeBorder) return;
+
+        this.constructionTapeBorder.clear();
+
+        const { gridSize, gridWidth, gridHeight } = this.options;
+        const areaWidth = gridWidth * gridSize;
+        const areaHeight = gridHeight * gridSize;
+        const startX = -areaWidth / 2;
+        const startY = -areaHeight / 2;
+
+        // Construction tape style: thick border with alternating black and yellow diagonal stripes
+        const borderThickness = 12;
+        const stripeWidth = 16;
+
+        // First, draw the yellow background for the border area
+        this.constructionTapeBorder.lineStyle(borderThickness, 0xFFD700, 1.0); // Gold yellow
+        this.constructionTapeBorder.drawRect(startX, startY, areaWidth, areaHeight);
+
+        // Then draw black diagonal stripes over the yellow
+        this.drawConstructionTapeStripes(
+            this.constructionTapeBorder,
+            startX, startY, areaWidth, areaHeight,
+            borderThickness, stripeWidth
+        );
+    } private drawConstructionTapeStripes(
+        graphics: Graphics,
+        x: number, y: number,
+        width: number, height: number,
+        borderThickness: number,
+        stripeWidth: number
+    ): void {
+        // Draw black diagonal stripes over the yellow background
+        const stripeSpacing = stripeWidth * 1.5;
+
+        // Set up for diagonal stripes
+        graphics.lineStyle(3, 0x000000, 0.9);
+
+        // Draw diagonal stripes on top border
+        this.drawBorderStripes(graphics, x, y, width, borderThickness, stripeSpacing, 'horizontal');
+
+        // Draw diagonal stripes on bottom border
+        this.drawBorderStripes(graphics, x, y + height - borderThickness, width, borderThickness, stripeSpacing, 'horizontal');
+
+        // Draw diagonal stripes on left border
+        this.drawBorderStripes(graphics, x, y, borderThickness, height, stripeSpacing, 'vertical');
+
+        // Draw diagonal stripes on right border
+        this.drawBorderStripes(graphics, x + width - borderThickness, y, borderThickness, height, stripeSpacing, 'vertical');
+    }
+
+    private drawBorderStripes(
+        graphics: Graphics,
+        x: number, y: number,
+        width: number, height: number,
+        stripeSpacing: number,
+        orientation: 'horizontal' | 'vertical'
+    ): void {
+        if (orientation === 'horizontal') {
+            // Horizontal border with diagonal stripes
+            for (let i = 0; i < width + height; i += stripeSpacing) {
+                const startX = x + i;
+                const endX = startX + stripeSpacing * 0.6;
+                const startY = y;
+                const endY = y + height;
+
+                if (startX < x + width) {
+                    graphics.moveTo(Math.max(x, startX), startY);
+                    graphics.lineTo(Math.min(x + width, endX), endY);
+                }
+            }
+        } else {
+            // Vertical border with diagonal stripes
+            for (let i = 0; i < width + height; i += stripeSpacing) {
+                const startY = y + i;
+                const endY = startY + stripeSpacing * 0.6;
+                const startX = x;
+                const endX = x + width;
+
+                if (startY < y + height) {
+                    graphics.moveTo(startX, Math.max(y, startY));
+                    graphics.lineTo(endX, Math.min(y + height, endY));
+                }
+            }
+        }
+    }
+
+    // Public API methods for testing and external use
     public testConnectionSystem(): void {
         console.log('🧪 TESTING CONNECTION SYSTEM:');
         this.clearShip();
