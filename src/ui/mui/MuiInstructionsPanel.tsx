@@ -12,12 +12,12 @@ import {
     ListItemIcon,
     ListItemText,
     Divider,
+    Tooltip,
     styled,
     alpha,
 } from '@mui/material';
 import {
-    ExpandMore as ExpandIcon,
-    ExpandLess as CollapseIcon, Mouse as MouseIcon,
+    Mouse as MouseIcon,
     TouchApp as ClickIcon,
     PanTool as DragIcon,
     ZoomIn as ZoomIcon,
@@ -130,36 +130,22 @@ export const MuiInstructionsPanel: React.FC<InstructionsPanelProps> = ({ classNa
 
     const toggleExpanded = () => {
         setIsExpanded(!isExpanded);
-    };
-
-    return (
+    }; return (
         <InstructionsContainer className={className}>
             <HeaderBox onClick={toggleExpanded}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <InfoIcon sx={{ color: spaceColors.primary.main }} />
-                    <Typography
-                        variant="h6"
+                <Tooltip title="Ship Builder Guide" placement="right">
+                    <IconButton
+                        size="small"
                         sx={{
                             color: spaceColors.primary.main,
-                            fontWeight: 'bold',
-                            fontSize: '1.1rem',
+                            '&:hover': {
+                                backgroundColor: alpha(spaceColors.primary.main, 0.2),
+                            },
                         }}
                     >
-                        🚀 Ship Builder Guide
-                    </Typography>
-                </Box>
-
-                <IconButton
-                    size="small"
-                    sx={{
-                        color: spaceColors.primary.main,
-                        '&:hover': {
-                            backgroundColor: alpha(spaceColors.primary.main, 0.2),
-                        },
-                    }}
-                >
-                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-                </IconButton>
+                        <InfoIcon />
+                    </IconButton>
+                </Tooltip>
             </HeaderBox>
 
             <Collapse in={isExpanded}>

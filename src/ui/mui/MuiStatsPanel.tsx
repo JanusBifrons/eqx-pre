@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState } from 'react';
 import {
     Box,
     Card,
@@ -7,6 +8,8 @@ import {
     LinearProgress,
     Chip,
     Divider,
+    IconButton,
+    Collapse,
     styled,
     alpha,
 } from '@mui/material';
@@ -17,6 +20,9 @@ import {
     FlashOn as PowerIcon,
     Build as BuildIcon,
     Visibility as VisibilityIcon,
+    ExpandMore as ExpandIcon,
+    ExpandLess as CollapseIcon,
+    Assessment as StatsIcon,
 } from '@mui/icons-material';
 import { Ship } from '../../entities/Ship';
 import { spaceColors } from '../../theme';
@@ -52,6 +58,20 @@ const StatsContainer = styled(Card)(() => ({
             backgroundColor: alpha(spaceColors.primary.main, 0.8),
         },
     },
+}));
+
+const HeaderBox = styled(Box)(() => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 16px',
+    backgroundColor: alpha(spaceColors.primary.main, 0.1),
+    borderBottom: `1px solid ${alpha(spaceColors.primary.main, 0.2)}`,
+    cursor: 'pointer',
+    '&:hover': {
+        backgroundColor: alpha(spaceColors.primary.main, 0.15),
+    },
+    transition: 'background-color 0.2s ease',
 }));
 
 const StatRow = styled(Box)(({ theme }) => ({
@@ -106,6 +126,12 @@ export const MuiStatsPanel: React.FC<StatsDisplayProps> = ({
     ship,
     className
 }) => {
+    const [isCollapsed, setIsCollapsed] = useState(true);
+
+    const toggleCollapsed = () => {
+        setIsCollapsed(!isCollapsed);
+    };
+
     const stats = ship.calculateStats();
     const blockCount = ship.blocks.size;
 
@@ -167,146 +193,160 @@ export const MuiStatsPanel: React.FC<StatsDisplayProps> = ({
 
     return (
         <StatsContainer className={className}>
-            <CardContent sx={{ p: 2 }}>
-                <Typography
-                    variant="h6"
-                    sx={{
-                        mb: 2,
-                        color: spaceColors.primary.main,
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        textShadow: `0 0 10px ${alpha(spaceColors.primary.main, 0.5)}`,
-                    }}
-                >
-                    📊 Ship Statistics
-                </Typography>
-
-                {/* Block Count */}
-                <Box sx={{ mb: 2, textAlign: 'center' }}>
-                    <Chip
-                        icon={<BuildIcon />}
-                        label={`${blockCount} Blocks`}
-                        variant="outlined"
+            <HeaderBox onClick={toggleCollapsed}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <StatsIcon sx={{ color: spaceColors.primary.main }} />
+                    <Typography
+                        variant="h6"
                         sx={{
-                            backgroundColor: alpha(spaceColors.primary.main, 0.1),
-                            borderColor: spaceColors.primary.main,
                             color: spaceColors.primary.main,
                             fontWeight: 'bold',
-                            fontSize: '0.9rem',
+                            fontSize: '1rem',
                         }}
-                    />
+                    >
+                        📊 Ship Statistics
+                    </Typography>
                 </Box>
 
-                <Divider sx={{ mb: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
-
-                {/* Main Stats */}
-                <Typography
-                    variant="subtitle1"
+                <IconButton
+                    size="small"
                     sx={{
-                        mb: 1,
-                        color: spaceColors.text.primary,
-                        fontWeight: 'bold',
+                        color: spaceColors.primary.main,
+                        '&:hover': {
+                            backgroundColor: alpha(spaceColors.primary.main, 0.2),
+                        },
                     }}
                 >
-                    Core Statistics
-                </Typography>
+                    {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+                </IconButton>
+            </HeaderBox>            <Collapse in={!isCollapsed}>
+                <CardContent sx={{ p: 2 }}>
+                    {/* Block Count */}
+                    <Box sx={{ mb: 2, textAlign: 'center' }}>
+                        <Chip
+                            icon={<BuildIcon />}
+                            label={`${blockCount} Blocks`}
+                            variant="outlined"
+                            sx={{
+                                backgroundColor: alpha(spaceColors.primary.main, 0.1),
+                                borderColor: spaceColors.primary.main,
+                                color: spaceColors.primary.main,
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                            }}
+                        />
+                    </Box>
 
-                {statItems.map((stat, index) => (
-                    <StatRow key={index}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                            <StatIcon color={stat.color}>
-                                {stat.icon}
-                            </StatIcon>
-                            <Box sx={{ flex: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                                    <StatLabel>{stat.label}</StatLabel>
-                                    <StatValue>{stat.value}</StatValue>                </Box>                <ProgressBar
-                                    variant="determinate"
-                                    value={stat.progress * 100}
-                                    barColor={stat.color}
-                                />
-                            </Box>
-                        </Box>
-                    </StatRow>
-                ))}
+                    <Divider sx={{ mb: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
 
-                <Divider sx={{ my: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
-
-                {/* Derived Stats */}
-                <Typography
-                    variant="subtitle1"
-                    sx={{
-                        mb: 1,
-                        color: spaceColors.text.primary,
-                        fontWeight: 'bold',
-                    }}
-                >
-                    Performance Metrics
-                </Typography>        <Box sx={{ display: 'flex', gap: 1 }}>
-                    {derivedStats.map((stat, index) => (
-                        <Box key={index} sx={{ flex: 1 }}>
-                            <Box
-                                sx={{
-                                    textAlign: 'center',
-                                    p: 1,
-                                    backgroundColor: alpha(stat.color, 0.1),
-                                    border: `1px solid ${alpha(stat.color, 0.3)}`,
-                                    borderRadius: 2,
-                                }}
-                            >
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        color: stat.color,
-                                        fontWeight: 'bold',
-                                        fontSize: '1.2rem',
-                                    }}
-                                >
-                                    {stat.value}
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        color: spaceColors.text.secondary,
-                                        fontSize: '0.7rem',
-                                        display: 'block',
-                                    }}
-                                >
-                                    {stat.label}
-                                </Typography>
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-
-                {/* Ship Status */}
-                <Divider sx={{ my: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
-
-                <Box sx={{ textAlign: 'center' }}>
+                    {/* Main Stats */}
                     <Typography
-                        variant="subtitle2"
+                        variant="subtitle1"
                         sx={{
                             mb: 1,
                             color: spaceColors.text.primary,
+                            fontWeight: 'bold',
                         }}
                     >
-                        Ship Status
-                    </Typography>
-                    <Chip
-                        icon={<VisibilityIcon />}
-                        label={blockCount > 0 ? 'Ship Constructed' : 'No Blocks Placed'}
-                        color={blockCount > 0 ? 'success' : 'warning'}
-                        variant="filled"
+                        Core Statistics
+                    </Typography>                {statItems.map((stat, index) => (
+                        <StatRow key={index}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                                <StatIcon color={stat.color}>
+                                    {stat.icon}
+                                </StatIcon>
+                                <Box sx={{ flex: 1 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                        <StatLabel>{stat.label}</StatLabel>
+                                        <StatValue>{stat.value}</StatValue>
+                                    </Box>
+                                    <ProgressBar
+                                        variant="determinate"
+                                        value={stat.progress * 100}
+                                        barColor={stat.color}
+                                    />
+                                </Box>
+                            </Box>
+                        </StatRow>
+                    ))}
+
+                    <Divider sx={{ my: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
+
+                    {/* Derived Stats */}
+                    <Typography
+                        variant="subtitle1"
                         sx={{
+                            mb: 1,
+                            color: spaceColors.text.primary,
                             fontWeight: 'bold',
-                            boxShadow: `0 0 10px ${alpha(
-                                blockCount > 0 ? spaceColors.success.main : spaceColors.warning.main,
-                                0.3
-                            )}`,
                         }}
-                    />
-                </Box>
-            </CardContent>
+                    >
+                        Performance Metrics
+                    </Typography>        <Box sx={{ display: 'flex', gap: 1 }}>
+                        {derivedStats.map((stat, index) => (
+                            <Box key={index} sx={{ flex: 1 }}>
+                                <Box
+                                    sx={{
+                                        textAlign: 'center',
+                                        p: 1,
+                                        backgroundColor: alpha(stat.color, 0.1),
+                                        border: `1px solid ${alpha(stat.color, 0.3)}`,
+                                        borderRadius: 2,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            color: stat.color,
+                                            fontWeight: 'bold',
+                                            fontSize: '1.2rem',
+                                        }}
+                                    >
+                                        {stat.value}
+                                    </Typography>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: spaceColors.text.secondary,
+                                            fontSize: '0.7rem',
+                                            display: 'block',
+                                        }}
+                                    >
+                                        {stat.label}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+
+                    {/* Ship Status */}
+                    <Divider sx={{ my: 2, borderColor: alpha(spaceColors.primary.main, 0.3) }} />
+
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                mb: 1,
+                                color: spaceColors.text.primary,
+                            }}
+                        >
+                            Ship Status
+                        </Typography>
+                        <Chip
+                            icon={<VisibilityIcon />}
+                            label={blockCount > 0 ? 'Ship Constructed' : 'No Blocks Placed'}
+                            color={blockCount > 0 ? 'success' : 'warning'}
+                            variant="filled"
+                            sx={{
+                                fontWeight: 'bold',
+                                boxShadow: `0 0 10px ${alpha(
+                                    blockCount > 0 ? spaceColors.success.main : spaceColors.warning.main,
+                                    0.3
+                                )}`,
+                            }} />
+                    </Box>
+                </CardContent>
+            </Collapse>
         </StatsContainer>
     );
 };
