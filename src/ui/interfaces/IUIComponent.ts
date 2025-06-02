@@ -16,10 +16,18 @@ export interface ICamera {
     y: number;
     zoom: number;
     pan(deltaX: number, deltaY: number): void;
-    zoomTo(): void;
+    zoomTo(zoom?: number, centerX?: number, centerY?: number): void;
     reset(): void;
     worldToScreen(worldPos: { x: number; y: number }): { x: number; y: number };
     screenToWorld(screenPos: { x: number; y: number }): { x: number; y: number };
+
+    // Extended methods for compatibility and advanced functionality
+    setOnTransformChange?(callback: (() => void) | null): void;
+    updateTransform?(): void;
+    initializePosition?(screenWidth: number, screenHeight: number): void;
+    updateScreenDimensions?(screenWidth: number, screenHeight: number): void;
+    centerOnWorldPosition?(worldX: number, worldY: number): void;
+    getScreenDimensions?(): { width: number; height: number };
 }
 
 // Block placement interface

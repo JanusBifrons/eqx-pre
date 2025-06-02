@@ -1,26 +1,23 @@
-import { Container } from 'pixi.js';
-import { Engine } from 'matter-js';
 import { Application } from '@/core/Application';
-import { ShipBuilder } from '@/ui/ShipBuilder';
-import { ShipSystem } from '@/systems/ShipSystem';
+import { GameLoop } from '@/core/GameLoop';
+import { PhysicsSystem } from '@/systems/PhysicsSystem';
 import { EntityManager } from '@/entities/EntityManager';
 import { Block } from '@/entities/Block';
 import { BlockDefinitions } from '@/entities/BlockDefinitions';
 import { Ship } from '@/entities/Ship';
+import { ShipBuilder } from '@/ui/ShipBuilder';
+import { serviceContainer } from '@/core/ServiceContainer';
 import { createTestRunner } from '@/debug/ship-builder-test';
 import { ResponsiveTest } from '@/debug/responsive-test';
 import '@/debug/quick-responsive-test'; // Auto-register quick test
 
 export class ShipBuilderDemo {
     private application: Application;
-    private physicsEngine: Engine;
     private entityManager!: EntityManager;
-    private shipSystem!: ShipSystem;
+    private physicsSystem!: PhysicsSystem;
+    private gameLoop!: GameLoop;
     private shipBuilder!: ShipBuilder;
-    private gameContainer!: Container;
-    private initializationPromise: Promise<void>;
-
-    constructor(domContainer?: HTMLElement) {
+    private initializationPromise: Promise<void>; constructor(domContainer?: HTMLElement) {
         // Calculate responsive dimensions based on container or window
         let width = window.innerWidth;
         let height = window.innerHeight;
@@ -35,7 +32,7 @@ export class ShipBuilderDemo {
         width = Math.max(width, 800);
         height = Math.max(height, 600);
 
-        // Create Application instance with unified rendering engine - use responsive dimensions
+        // Create Application instance with unified rendering engine
         this.application = new Application({
             width,
             height,
@@ -43,49 +40,59 @@ export class ShipBuilderDemo {
             antialias: true
         }, domContainer);
 
-        this.physicsEngine = Engine.create();
-        this.physicsEngine.world.gravity.y = 0; // Space physics - no gravity
-
         this.initializationPromise = this.initialize();
     }
 
     public async waitForInitialization(): Promise<void> {
         await this.initializationPromise;
-    }
-
-    private async initialize(): Promise<void> {
+    } private async initialize(): Promise<void> {
         // Start the application (this registers services)
-        await this.application.start();        // Get the rendering engine for advanced features
+        await this.application.start();
+
+        // Get the rendering engine for camera setup
         const renderingEngine = this.application.getRenderingEngine();
 
-        // Reset camera to normal scale - let ShipBuilder handle its own camera
+        // Set camera for ship builder (fixed zoom for precision building)
         renderingEngine.setCamera({
             x: 0,
             y: 0,
-            zoom: 1.0  // Use normal scale at application level
+            zoom: 1.0  // Fixed zoom for building precision
         });
 
-        // Now we can create EntityManager since application service is registered
+        // Create and register EntityManager
         this.entityManager = new EntityManager();
-        this.shipSystem = new ShipSystem(this.physicsEngine);        // Get the game container from the application
-        this.gameContainer = this.application.getGameContainer();
+        serviceContainer.register('entityManager', this.entityManager);
 
-        // Center the game container
-        const pixiApp = this.application.getPixiApp();
-        this.gameContainer.x = pixiApp.screen.width / 2;
-        this.gameContainer.y = pixiApp.screen.height / 2; this.shipBuilder = new ShipBuilder(this.gameContainer, {
+        // Get the game loop and setup systems
+        this.gameLoop = serviceContainer.get<GameLoop>('gameLoop');
+
+        // Create physics system for ship building (no gravity)
+        this.physicsSystem = new PhysicsSystem({
+            gravity: { x: 0, y: 0 },
+            enableSleeping: false,
+            timeScale: 1,
+            enableDebugRender: false
+        });
+
+        // Add physics system to game loop
+        this.gameLoop.addSystem(this.physicsSystem);
+
+        // Register physics system in service container
+        serviceContainer.register('physicsSystem', this.physicsSystem);        // Create ShipBuilder with world container from rendering engine
+        const worldContainer = renderingEngine.getWorldContainer();
+        this.shipBuilder = new ShipBuilder(worldContainer, renderingEngine, {
             gridSize: 32,
-            gridWidth: 50,  // Increased from 25
-            gridHeight: 30, // Increased from 15
+            gridWidth: 50,
+            gridHeight: 30,
             snapToGrid: true,
-            showGrid: true,  // Enable grid to help with positioning
+            showGrid: true,
             showConnectionPoints: true
         });
 
-        // Ensure proper sizing for the current screen
+        // Setup resize handling
+        const pixiApp = this.application.getPixiApp();
         this.shipBuilder.resize(pixiApp.screen.width, pixiApp.screen.height);
 
-        // Register resize callback to keep ship builder UI synchronized
         renderingEngine.addResizeCallback((width, height) => {
             this.shipBuilder.resize(width, height);
         });
@@ -95,12 +102,7 @@ export class ShipBuilderDemo {
         // Create a small demo ship to start with so there's something to interact with
         this.createDemoShip();
 
-        // Manual update loop for ship physics
-        const updateLoop = () => {
-            this.shipSystem.update(1 / 60); // Assuming 60 FPS
-            requestAnimationFrame(updateLoop);
-        };
-        updateLoop();
+        // Game loop handles all system updates now - no manual update needed
 
         // Add automatic diagnostic tests to help identify hover preview issues
         this.runInitialDiagnostics();
@@ -219,24 +221,9 @@ export class ShipBuilderDemo {
         for (const conn of connections) {
             const success = ship.connectBlocks(conn.block1, conn.block2, conn.point1, conn.point2);
             console.log(`  ${conn.desc}: ${success ? 'SUCCESS' : 'FAILED'}`);
-        }
-
-        // Add visual representations to the scene
-        for (const block of ship.blocks.values()) {
-            this.gameContainer.addChild(block.container);
-            block.container.x = block.gridPosition.x;
-            block.container.y = block.gridPosition.y;
-        }
-
-        // Position the demo ship away from the builder area
-        const shipContainer = new Container();
-        for (const block of ship.blocks.values()) {
-            shipContainer.addChild(block.container);
-        }
-        shipContainer.x = 300;
-        shipContainer.y = -200;
-        this.gameContainer.addChild(shipContainer);        // Register with ship system
-        this.shipSystem.registerShip(ship);
+        }        // Add visual representations to the scene
+        // The ship blocks are automatically added to the ShipBuilder's world container
+        // No need to manually position containers - the ShipBuilder handles this
 
         console.log('Demo ship created with stats:', ship.calculateStats());
         console.log('✅ All blocks conform to grid sizing standards');
@@ -251,62 +238,6 @@ export class ShipBuilderDemo {
         } else {
             console.log('✅ Demo ship passes structural validation');
         }
-    }
-
-    private setupControls(): void {
-        const keys = new Set<string>();
-
-        document.addEventListener('keydown', (event) => {
-            keys.add(event.code);
-        });
-
-        document.addEventListener('keyup', (event) => {
-            keys.delete(event.code);
-        });
-
-        // Store keys reference for update loop
-        (this as any).keys = keys;
-    }
-
-    private update(deltaTime: number): void {
-        const dt = deltaTime * 0.016; // Convert to seconds (60fps baseline)
-
-        // Update physics
-        Engine.update(this.physicsEngine, dt * 1000);
-
-        // Update ship system
-        this.shipSystem.update(dt);
-
-        // Handle input for ship control
-        this.handleShipControls(dt);
-
-        // Update entity manager
-        this.entityManager.update(dt);
-    }
-
-    private handleShipControls(_deltaTime: number): void {
-        const keys = (this as any).keys as Set<string>;
-        const ships = this.shipSystem.getShips();
-
-        if (ships.length === 0) return;        // Control the first ship (demo ship)
-        const ship = ships[0];
-        const shipComponent = ship.getComponent('ship') as any;
-
-        if (!shipComponent?.isConstructed) return;
-
-        // Apply ship controls
-        if (keys.has('KeyW')) {
-            this.shipSystem.applyThrustToShip(ship, { x: 0, y: -1 }, 1);
-        }
-        if (keys.has('KeyS')) {
-            this.shipSystem.applyThrustToShip(ship, { x: 0, y: 1 }, 1);
-        }
-        if (keys.has('KeyA')) {
-            this.shipSystem.applyThrustToShip(ship, { x: -1, y: 0 }, 1);
-        }
-        if (keys.has('KeyD')) {
-            this.shipSystem.applyThrustToShip(ship, { x: 1, y: 0 }, 1);
-        }
     } public getPixiApp() {
         return this.application.getPixiApp();
     }
@@ -317,18 +248,12 @@ export class ShipBuilderDemo {
 
     public getShipBuilder(): ShipBuilder {
         return this.shipBuilder;
-    }
-
-    public getShipSystem(): ShipSystem {
-        return this.shipSystem;
     } public destroy(): void {
-        // Remove systems from game loop first
-        const gameLoop = this.application.getGameLoop();
-        gameLoop.removeSystem('ship-builder-demo');
+        // Remove physics system from game loop first
+        this.gameLoop.removeSystem('physics');
 
         // Then destroy components
         this.shipBuilder.destroy();
-        this.shipSystem.destroy();
         this.application.destroy();
     }
 }

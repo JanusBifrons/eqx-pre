@@ -1,7 +1,7 @@
 // Export all UI components and interfaces
 export * from './interfaces/IUIComponent';
 export * from './components/BaseUIComponent';
-export * from './components/CameraController';
+export * from './components/CameraAdapter';
 export * from './components/InputHandler';
 export * from './components/BlockPlacer';
 export * from './components/BlockPreview';

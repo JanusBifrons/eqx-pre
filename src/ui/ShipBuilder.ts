@@ -1,7 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
 import { Ship } from '@/entities/Ship';
-import { IShipBuilderConfig } from './interfaces/IUIComponent';
-import { CameraController } from './components/CameraController';
+import { IShipBuilderConfig, ICamera } from './interfaces/IUIComponent';
+import { RenderingEngine } from '@/core/RenderingEngine';
+import { CameraAdapter } from './components/CameraAdapter';
 import { InputHandler } from './components/InputHandler';
 import { BlockPlacer } from './components/BlockPlacer';
 import { BlockPreview } from './components/BlockPreview';
@@ -37,9 +38,10 @@ export class ShipBuilder {
     private options: IShipBuilderConfig;
     private isBuilding: boolean = true;    // Core systems
     private worldContainer!: Container;
-    private camera!: CameraController;
+    private renderingEngine: RenderingEngine;
+    private camera!: ICamera;
     private inputHandler!: InputHandler;
-    private blockPlacer!: BlockPlacer;    // UI Components (only PIXI.js rendering components remain)
+    private blockPlacer!: BlockPlacer;// UI Components (only PIXI.js rendering components remain)
     private blockPreview!: BlockPreview;
 
     // Debug visualization components
@@ -56,10 +58,9 @@ export class ShipBuilder {
 
     // Callback for notifying external systems of changes
     private onShipChanged: (() => void) | null = null;
-    private onBlockDeselected: (() => void) | null = null;
-
-    constructor(container: Container, options: Partial<BuilderOptions> = {}) {
+    private onBlockDeselected: (() => void) | null = null; constructor(container: Container, renderingEngine: RenderingEngine, options: Partial<BuilderOptions> = {}) {
         this.container = container;
+        this.renderingEngine = renderingEngine;
         this.ship = new Ship();
 
         this.options = {
@@ -105,9 +106,11 @@ export class ShipBuilder {
             this.addPlacementAreaVisualization();
         }
     } private setupCoreComponents(): void {
-        // Initialize camera system
-        this.camera = new CameraController(this.worldContainer);        // Set up camera transform callback to update debug visuals
-        this.camera.setOnTransformChange(() => {
+        // Initialize camera system with RenderingEngine
+        this.camera = new CameraAdapter(this.renderingEngine);
+
+        // Set up camera transform callback to update debug visuals
+        this.camera.setOnTransformChange?.(() => {
             this.updatePlaceableAreaDebug();
             this.updateConstructionTapeBorder();
         });
@@ -122,7 +125,7 @@ export class ShipBuilder {
         this.blockPreview = new BlockPreview(this.worldContainer);
 
         // Apply initial camera transform now that everything is set up
-        this.camera.updateTransform();
+        this.camera.updateTransform?.();
     } private setupEventHandlers(): void {
         // Input events
         this.inputHandler.on('mouseMove', (worldPos: Vector, screenPos: Vector) => {
@@ -448,18 +451,8 @@ export class ShipBuilder {
         this.container.width = screenWidth;
         this.container.height = screenHeight;
 
-        // Check if this is initial setup (camera at origin) or a resize
-        const isInitialSetup = this.camera.x === 0 && this.camera.y === 0;
-
-        if (isInitialSetup) {
-            // Initial camera positioning - center the buildable area
-            this.camera.initializePosition(screenWidth, screenHeight);
-            console.log(`🎯 Initial camera setup for screen: ${screenWidth}x${screenHeight}`);
-        } else {
-            // Update camera for new screen dimensions while maintaining relative position
-            this.camera.updateScreenDimensions(screenWidth, screenHeight);
-            console.log(`📐 Camera updated for screen resize: ${screenWidth}x${screenHeight}`);
-        }
+        // Update camera screen dimensions if available
+        this.camera.updateScreenDimensions?.(screenWidth, screenHeight);
 
         // Resize remaining PIXI.js components
         this.blockPreview.resize(screenWidth, screenHeight);
@@ -474,7 +467,7 @@ export class ShipBuilder {
             this.updatePlaceableAreaDebug();
         }
 
-        console.log(`✅ UI resized for screen: ${screenWidth}x${screenHeight}, camera at: (${this.camera.x}, ${this.camera.y})`);
+        console.log(`✅ UI resized for screen: ${screenWidth}x${screenHeight}`);
     } public destroy(): void {
         // Destroy remaining components
         this.ship.destroy();
@@ -776,9 +769,7 @@ export class ShipBuilder {
 
     public getSelectedBlockType(): string | null {
         return this.selectedBlockType;
-    }
-
-    public getCamera(): CameraController {
+    } public getCamera(): ICamera {
         return this.camera;
     }
 

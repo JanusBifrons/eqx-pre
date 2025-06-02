@@ -72,9 +72,8 @@ export class ResponsiveTest {
             const canvasElement = pixiApp.view as HTMLCanvasElement;
             const containerRect = canvasElement.parentElement?.getBoundingClientRect();
 
-            const hasValidSize = pixiApp.screen.width > 0 && pixiApp.screen.height > 0;
-            const hasProperStyling = canvasElement.style.width === '100%' && canvasElement.style.height === '100%';
-            const isResponsive = containerRect && containerRect.width > 0 && containerRect.height > 0;
+            const hasValidSize = pixiApp.screen.width > 0 && pixiApp.screen.height > 0; const hasProperStyling = canvasElement.style.width === '100%' && canvasElement.style.height === '100%';
+            const isResponsive = !!(containerRect && containerRect.width > 0 && containerRect.height > 0);
 
             this.addResult('Initial Canvas Size', hasValidSize && hasProperStyling && isResponsive, {
                 screenSize: `${pixiApp.screen.width}x${pixiApp.screen.height}`,

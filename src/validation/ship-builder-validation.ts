@@ -4,15 +4,29 @@
 import { Container } from 'pixi.js';
 import { ShipBuilder } from '@/ui/ShipBuilder';
 import { Ship } from '@/entities/Ship';
+import { RenderingEngine } from '@/core/RenderingEngine';
 
 export class ShipBuilderValidation {
     private shipBuilder: ShipBuilder;
     private testContainer: Container;
+    private renderingEngine: RenderingEngine;
     private validationResults: { [key: string]: boolean } = {};
 
     constructor() {
         this.testContainer = new Container();
-        this.shipBuilder = new ShipBuilder(this.testContainer, {
+
+        // Create a mock RenderingEngine for testing
+        this.renderingEngine = {
+            getWorldContainer: () => this.testContainer,
+            setCamera: () => { },
+            getCamera: () => ({ x: 0, y: 0, zoom: 1, rotation: 0 }),
+            panCamera: () => { },
+            zoomCamera: () => { },
+            worldToScreen: (x: number, y: number) => ({ x, y }),
+            screenToWorld: (x: number, y: number) => ({ x, y }),
+        } as any;
+
+        this.shipBuilder = new ShipBuilder(this.testContainer, this.renderingEngine, {
             gridSize: 32,
             gridWidth: 25,
             gridHeight: 15,
@@ -57,12 +71,20 @@ export class ShipBuilderValidation {
         console.log(`🧪 OVERALL: ${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
 
         return { success: allPassed, results: this.validationResults };
-    }
-
-    private testComponentInitialization(): boolean {
+    } private testComponentInitialization(): boolean {
         try {
             // Test that ShipBuilder can be instantiated
-            const testBuilder = new ShipBuilder(new Container());
+            const testContainer = new Container();
+            const mockRenderingEngine = {
+                getWorldContainer: () => testContainer,
+                setCamera: () => { },
+                getCamera: () => ({ x: 0, y: 0, zoom: 1, rotation: 0 }),
+                panCamera: () => { },
+                zoomCamera: () => { },
+                worldToScreen: (x: number, y: number) => ({ x, y }),
+                screenToWorld: (x: number, y: number) => ({ x, y }),
+            } as any;
+            const testBuilder = new ShipBuilder(testContainer, mockRenderingEngine);
 
             // Test that it has all required properties
             const hasShip = testBuilder.getShip() instanceof Ship;
@@ -141,12 +163,20 @@ export class ShipBuilderValidation {
             console.error('Responsiveness test failed:', error);
             return false;
         }
-    }
-
-    private testCleanup(): boolean {
+    } private testCleanup(): boolean {
         try {
             // Test that destroy works without errors
-            const testBuilder = new ShipBuilder(new Container());
+            const testContainer = new Container();
+            const mockRenderingEngine = {
+                getWorldContainer: () => testContainer,
+                setCamera: () => { },
+                getCamera: () => ({ x: 0, y: 0, zoom: 1, rotation: 0 }),
+                panCamera: () => { },
+                zoomCamera: () => { },
+                worldToScreen: (x: number, y: number) => ({ x, y }),
+                screenToWorld: (x: number, y: number) => ({ x, y }),
+            } as any;
+            const testBuilder = new ShipBuilder(testContainer, mockRenderingEngine);
             testBuilder.destroy();
             return true;
         } catch (error) {
