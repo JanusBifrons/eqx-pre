@@ -72,19 +72,23 @@ export class InputHandler extends BaseUIComponent {
                         this.camera.reset();
                         event.preventDefault();
                     }
-                    break; case 'Equal':
+                    break;                case 'Equal':
                 case 'NumpadAdd':
                     if (event.ctrlKey) {
-                        // Zoom is fixed at 1.0, so this is a no-op
-                        console.log('Zoom is fixed at 1.0');
+                        const currentZoom = this.camera.zoom;
+                        const newZoom = currentZoom * 1.1; // Zoom in by 10%
+                        this.camera.zoomTo(newZoom);
+                        console.log(`Keyboard zoom in: ${newZoom.toFixed(2)}`);
                         event.preventDefault();
                     }
                     break;
                 case 'Minus':
                 case 'NumpadSubtract':
                     if (event.ctrlKey) {
-                        // Zoom is fixed at 1.0, so this is a no-op
-                        console.log('Zoom is fixed at 1.0');
+                        const currentZoom = this.camera.zoom;
+                        const newZoom = currentZoom * 0.9; // Zoom out by 10%
+                        this.camera.zoomTo(newZoom);
+                        console.log(`Keyboard zoom out: ${newZoom.toFixed(2)}`);
                         event.preventDefault();
                     }
                     break;
@@ -146,11 +150,21 @@ export class InputHandler extends BaseUIComponent {
         this.isDragging = false;
         this.lastDragPosition = null;
         this.updateCursor(); // Reset cursor to appropriate state
-    } private onWheel(event: any): void {
+    }    private onWheel(event: any): void {
         event.preventDefault();
-        // Zoom is fixed at 1.0, so wheel scrolling is disabled
-        console.log('Zoom is fixed at 1.0, wheel zoom disabled');
-    } resize(_width: number, _height: number): void {
+        
+        // Zoom towards mouse position
+        const zoomDelta = event.deltaY < 0 ? 0.1 : -0.1; // Scroll up to zoom in
+        const rect = this.container.getBounds();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        
+        const currentZoom = this.camera.zoom;
+        const newZoom = currentZoom * (1 + zoomDelta);
+        this.camera.zoomTo(newZoom, mouseX, mouseY);
+        
+        console.log(`Wheel zoom: ${newZoom.toFixed(2)}`);
+    }resize(_width: number, _height: number): void {
         // Input handler doesn't need resize handling
     }
 

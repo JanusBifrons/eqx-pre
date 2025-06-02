@@ -125,7 +125,10 @@ interface ShipBuilderControlsProps {
     snapToGrid: boolean;
     onShowGridChange: (show: boolean) => void;
     onShowConnectionPointsChange: (show: boolean) => void;
-    onSnapToGridChange: (snap: boolean) => void;    // Camera Controls - zoom is now fixed at 1.0
+    onSnapToGridChange: (snap: boolean) => void;
+
+    // Camera Controls - zoom is now enabled
+    currentZoom: number;
     onZoomIn: () => void;
     onZoomOut: () => void;
     onCenterView: () => void;
@@ -161,6 +164,7 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
     snapToGrid,
     onShowGridChange, onShowConnectionPointsChange,
     onSnapToGridChange,
+    currentZoom,
     onZoomIn,
     onZoomOut,
     onCenterView,
@@ -396,7 +400,7 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                             variant="subtitle2"
                             sx={{ mb: 2, color: spaceColors.text.primary, fontWeight: 'bold' }}
                         >
-                            Zoom Level: 1.0x (Fixed)
+                            Zoom Level: {currentZoom.toFixed(1)}x
                         </Typography>
 
                         <Typography
@@ -408,7 +412,7 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                                 textAlign: 'center'
                             }}
                         >
-                            Zoom is fixed at 1.0x for optimal building experience
+                            Use mouse wheel or buttons to zoom in/out
                         </Typography>
 
                         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
@@ -417,11 +421,15 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                                 size="small"
                                 startIcon={<ZoomOutIcon />}
                                 onClick={onZoomOut}
-                                disabled={true}
+                                disabled={currentZoom <= 0.1}
                                 sx={{
                                     flex: 1,
-                                    borderColor: alpha(spaceColors.primary.main, 0.3),
-                                    color: alpha(spaceColors.primary.main, 0.3),
+                                    borderColor: currentZoom <= 0.1 ? alpha(spaceColors.primary.main, 0.3) : spaceColors.primary.main,
+                                    color: currentZoom <= 0.1 ? alpha(spaceColors.primary.main, 0.3) : spaceColors.primary.main,
+                                    '&:hover': currentZoom > 0.1 ? {
+                                        borderColor: spaceColors.primary.light,
+                                        backgroundColor: alpha(spaceColors.primary.main, 0.1),
+                                    } : {},
                                 }}
                             >
                                 Zoom Out
@@ -431,11 +439,15 @@ export const MuiShipBuilderControls: React.FC<ShipBuilderControlsProps> = ({
                                 size="small"
                                 startIcon={<ZoomInIcon />}
                                 onClick={onZoomIn}
-                                disabled={true}
+                                disabled={currentZoom >= 5.0}
                                 sx={{
                                     flex: 1,
-                                    borderColor: alpha(spaceColors.primary.main, 0.3),
-                                    color: alpha(spaceColors.primary.main, 0.3),
+                                    borderColor: currentZoom >= 5.0 ? alpha(spaceColors.primary.main, 0.3) : spaceColors.primary.main,
+                                    color: currentZoom >= 5.0 ? alpha(spaceColors.primary.main, 0.3) : spaceColors.primary.main,
+                                    '&:hover': currentZoom < 5.0 ? {
+                                        borderColor: spaceColors.primary.light,
+                                        backgroundColor: alpha(spaceColors.primary.main, 0.1),
+                                    } : {},
                                 }}
                             >
                                 Zoom In

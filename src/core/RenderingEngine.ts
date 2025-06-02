@@ -412,25 +412,28 @@ export class RenderingEngine {
 
     public getCamera(): CameraState {
         return { ...this.camera };
-    }
-
-    public worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
+    }    public worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
         if (!this.pixiApp) return { x: worldX, y: worldY };
 
+        // Apply the same transformation as updateCameraTransform()
         return {
-            x: (worldX + this.camera.x) * this.camera.zoom + this.pixiApp.screen.width / 2,
-            y: (worldY + this.camera.y) * this.camera.zoom + this.pixiApp.screen.height / 2
+            x: worldX * this.camera.zoom + (this.camera.x * this.camera.zoom + this.pixiApp.screen.width / 2),
+            y: worldY * this.camera.zoom + (this.camera.y * this.camera.zoom + this.pixiApp.screen.height / 2)
         };
     }
 
     public screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
         if (!this.pixiApp) return { x: screenX, y: screenY };
 
+        // Reverse the transformation from updateCameraTransform()
+        const containerX = this.camera.x * this.camera.zoom + this.pixiApp.screen.width / 2;
+        const containerY = this.camera.y * this.camera.zoom + this.pixiApp.screen.height / 2;
+        
         return {
-            x: (screenX - this.pixiApp.screen.width / 2) / this.camera.zoom - this.camera.x,
-            y: (screenY - this.pixiApp.screen.height / 2) / this.camera.zoom - this.camera.y
+            x: (screenX - containerX) / this.camera.zoom,
+            y: (screenY - containerY) / this.camera.zoom
         };
-    } private updateCameraTransform(): void {
+    }private updateCameraTransform(): void {
         if (!this.pixiApp) return;
 
         this.worldContainer.x = this.camera.x * this.camera.zoom + this.pixiApp.screen.width / 2;

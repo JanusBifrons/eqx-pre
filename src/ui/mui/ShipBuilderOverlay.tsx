@@ -18,6 +18,7 @@ interface ShipBuilderOverlayProps {
     onZoomIn: () => void;
     onZoomOut: () => void;
     onCenterView: () => void;
+    currentZoom: number;
 
     // Collision logging controls
     collisionLogging: boolean;
@@ -36,6 +37,7 @@ export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
     onZoomIn,
     onZoomOut,
     onCenterView,
+    currentZoom,
     collisionLogging,
     onCollisionLoggingChange,
 }) => {
@@ -66,8 +68,7 @@ export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
             {/* Ship Statistics - Right Side */}
             <MuiStatsPanel ship={ship} />
 
-            {/* Speed Dial Actions - Bottom Right */}
-            <MuiSpeedDialActions
+            {/* Speed Dial Actions - Bottom Right */}            <MuiSpeedDialActions
                 onTestShip={onTestShip}
                 onClearShip={onClearShip}
                 onSaveShip={onSaveShip}
@@ -76,6 +77,7 @@ export const ShipBuilderOverlay: React.FC<ShipBuilderOverlayProps> = ({
                 onZoomIn={onZoomIn}
                 onZoomOut={onZoomOut}
                 onCenterView={onCenterView}
+                currentZoom={currentZoom}
                 canTest={canTest}
                 hasBlocks={hasBlocks}
                 collisionLogging={collisionLogging}

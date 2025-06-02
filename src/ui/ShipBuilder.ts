@@ -789,15 +789,19 @@ export class ShipBuilder {
         this.options.showConnectionPoints = !this.options.showConnectionPoints;
         // Implementation would need to update connection point visibility
         console.log(`Connection points toggled: ${this.options.showConnectionPoints ? 'enabled' : 'disabled'}`);
-    }    // Camera control methods for adapter integration - simplified for fixed zoom
+    }    // Camera control methods for adapter integration
     public zoomIn(): void {
-        // Zoom is fixed at 1.0, so this is a no-op
-        console.log('Zoom is fixed at 1.0');
+        const currentZoom = this.camera.zoom;
+        const newZoom = currentZoom * 1.1; // Zoom in by 10%
+        this.camera.zoomTo(newZoom);
+        console.log(`Zoomed in to ${newZoom.toFixed(2)}`);
     }
 
     public zoomOut(): void {
-        // Zoom is fixed at 1.0, so this is a no-op
-        console.log('Zoom is fixed at 1.0');
+        const currentZoom = this.camera.zoom;
+        const newZoom = currentZoom * 0.9; // Zoom out by 10%
+        this.camera.zoomTo(newZoom);
+        console.log(`Zoomed out to ${newZoom.toFixed(2)}`);
     }
 
     public centerOnShip(): void {
@@ -884,15 +888,13 @@ export class ShipBuilder {
     }    // Debug visualization methods
     private addDebugVisualization(): void {
         this.placeableAreaDebug = new Graphics();
-        this.debugContainer.addChild(this.placeableAreaDebug);
+        this.worldContainer.addChild(this.placeableAreaDebug);
     }
 
     private addCursorDebug(): void {
         this.cursorDebug = new Graphics();
-        this.debugContainer.addChild(this.cursorDebug);
-    }
-
-    private addPlaceableAreaDebug(): void {
+        this.worldContainer.addChild(this.cursorDebug);
+    }    private addPlaceableAreaDebug(): void {
         if (!this.placeableAreaDebug) return;
 
         this.placeableAreaDebug.clear();
@@ -901,59 +903,45 @@ export class ShipBuilder {
         const areaWidth = gridWidth * gridSize;
         const areaHeight = gridHeight * gridSize;
 
-        // Convert world bounds to screen coordinates
-        const worldTopLeft = { x: -areaWidth / 2, y: -areaHeight / 2 };
-        const worldBottomRight = { x: areaWidth / 2, y: areaHeight / 2 };
+        // Use world coordinates directly (same as construction tape border)
+        const startX = -areaWidth / 2;
+        const startY = -areaHeight / 2;
 
-        const screenTopLeft = this.camera.worldToScreen(worldTopLeft);
-        const screenBottomRight = this.camera.worldToScreen(worldBottomRight);
-
-        const screenWidth = screenBottomRight.x - screenTopLeft.x;
-        const screenHeight = screenBottomRight.y - screenTopLeft.y;
-
-        // Draw bright colored rectangle for placeable area in screen space
+        // Draw bright colored rectangle for placeable area in world space
         this.placeableAreaDebug.lineStyle(3, 0x00FF00, 1.0); // Bright green
-        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.drawRect(startX, startY, areaWidth, areaHeight);
 
         // Add semi-transparent fill
         this.placeableAreaDebug.beginFill(0x00FF00, 0.1);
-        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.drawRect(startX, startY, areaWidth, areaHeight);
         this.placeableAreaDebug.endFill();
 
         console.log(`🔧 DEBUG PLACEABLE AREA:`);
         console.log(`📐 Camera position: (${this.camera.x}, ${this.camera.y}) zoom: ${this.camera.zoom}`);
         console.log(`📏 Grid config: ${gridWidth}x${gridHeight} @ ${gridSize}px = ${areaWidth}x${areaHeight}px`);
-        console.log(`🌍 World bounds: (${worldTopLeft.x}, ${worldTopLeft.y}) to (${worldBottomRight.x}, ${worldBottomRight.y})`);
-        console.log(`🖥️ Screen bounds: (${screenTopLeft.x}, ${screenTopLeft.y}) to (${screenBottomRight.x}, ${screenBottomRight.y})`);
-    }
-
-    private updateCursorDebug(worldPos: Vector): void {
+        console.log(`🌍 World bounds: (${startX}, ${startY}) to (${startX + areaWidth}, ${startY + areaHeight})`);
+    }    private updateCursorDebug(worldPos: Vector): void {
         if (!this.cursorDebug) return;
 
         this.cursorDebug.clear();
 
-        // Convert world position to screen position for cursor debug
-        const screenPos = this.camera.worldToScreen({ x: worldPos.x, y: worldPos.y });
-
-        // Draw a cross at cursor position IN SCREEN SPACE
+        // Draw a cross at cursor position IN WORLD SPACE
         const crossSize = 20;
         this.cursorDebug.lineStyle(2, 0xFF0000, 1.0); // Bright red
 
         // Horizontal line
-        this.cursorDebug.moveTo(screenPos.x - crossSize, screenPos.y);
-        this.cursorDebug.lineTo(screenPos.x + crossSize, screenPos.y);
+        this.cursorDebug.moveTo(worldPos.x - crossSize, worldPos.y);
+        this.cursorDebug.lineTo(worldPos.x + crossSize, worldPos.y);
 
         // Vertical line
-        this.cursorDebug.moveTo(screenPos.x, screenPos.y - crossSize);
-        this.cursorDebug.lineTo(screenPos.x, screenPos.y + crossSize);
+        this.cursorDebug.moveTo(worldPos.x, worldPos.y - crossSize);
+        this.cursorDebug.lineTo(worldPos.x, worldPos.y + crossSize);
 
         // Add small circle at center
         this.cursorDebug.beginFill(0xFF0000, 0.8);
-        this.cursorDebug.drawCircle(screenPos.x, screenPos.y, 3);
+        this.cursorDebug.drawCircle(worldPos.x, worldPos.y, 3);
         this.cursorDebug.endFill();
-    }
-
-    private updatePlaceableAreaDebug(): void {
+    }private updatePlaceableAreaDebug(): void {
         if (!this.placeableAreaDebug) return;
 
         this.placeableAreaDebug.clear();
@@ -962,23 +950,17 @@ export class ShipBuilder {
         const areaWidth = gridWidth * gridSize;
         const areaHeight = gridHeight * gridSize;
 
-        // Convert world bounds to screen coordinates
-        const worldTopLeft = { x: -areaWidth / 2, y: -areaHeight / 2 };
-        const worldBottomRight = { x: areaWidth / 2, y: areaHeight / 2 };
+        // Use world coordinates directly (same as construction tape border)
+        const startX = -areaWidth / 2;
+        const startY = -areaHeight / 2;
 
-        const screenTopLeft = this.camera.worldToScreen(worldTopLeft);
-        const screenBottomRight = this.camera.worldToScreen(worldBottomRight);
-
-        const screenWidth = screenBottomRight.x - screenTopLeft.x;
-        const screenHeight = screenBottomRight.y - screenTopLeft.y;
-
-        // Draw bright colored rectangle for placeable area in screen space
+        // Draw bright colored rectangle for placeable area in world space
         this.placeableAreaDebug.lineStyle(3, 0x00FF00, 1.0); // Bright green
-        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.drawRect(startX, startY, areaWidth, areaHeight);
 
         // Add semi-transparent fill
         this.placeableAreaDebug.beginFill(0x00FF00, 0.1);
-        this.placeableAreaDebug.drawRect(screenTopLeft.x, screenTopLeft.y, screenWidth, screenHeight);
+        this.placeableAreaDebug.drawRect(startX, startY, areaWidth, areaHeight);
         this.placeableAreaDebug.endFill();
     }
 

@@ -10,6 +10,7 @@ import { serviceContainer } from '@/core/ServiceContainer';
 import { createTestRunner } from '@/debug/ship-builder-test';
 import { ResponsiveTest } from '@/debug/responsive-test';
 import '@/debug/quick-responsive-test'; // Auto-register quick test
+import { runCoordinateTest } from '@/debug/coordinate-test';
 
 export class ShipBuilderDemo {
     private application: Application;
@@ -256,6 +257,13 @@ export class ShipBuilderDemo {
         this.shipBuilder.destroy();
         this.application.destroy();
     }
+
+    /**
+     * Test coordinate transformation system
+     */
+    public testCoordinateTransforms(): void {
+        runCoordinateTest();
+    }
 }
 
 // Example usage and initialization
@@ -342,11 +350,15 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
         runTests: async () => {
             const testRunner = createTestRunner(demo.getShipBuilder());
             await testRunner.runAllTests();
-        },
-        // Add responsive test
+        },        // Add responsive test
         runResponsiveTests: async () => {
             const responsiveTest = new ResponsiveTest(demo.getApplication().getRenderingEngine(), demo.getShipBuilder());
             await responsiveTest.runAllTests();
+        },
+
+        // Add coordinate transformation test
+        testCoordinateTransforms: () => {
+            demo.testCoordinateTransforms();
         },
 
         // Add automatic issue reproduction
@@ -383,13 +395,14 @@ export async function initializeShipBuilderDemo(container?: HTMLElement): Promis
             console.log('\n📊 Bug reproduction complete. Check the debug output above.');
             console.log('🔍 Look for differences in preview block state between steps 2 and 4.');
         }
-    }; console.log('Ship Builder Demo ready!');
+    };    console.log('Ship Builder Demo ready!');
     console.log('Access demo via window.shipBuilderDemo');
     console.log('Get current ship stats: getShipStats()');
     console.log('Validate current ship: validateShip()');
     console.log('Test refactored components: testRefactorComponents()');
     console.log('Run responsive tests: shipBuilderDemo.runResponsiveTests()');
     console.log('Create demo ship: shipBuilderDemo.createDemoShip()');
+    console.log('Test coordinate transforms: shipBuilderDemo.testCoordinateTransforms()');
 
     return demo;
 }

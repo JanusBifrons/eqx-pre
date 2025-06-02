@@ -11,6 +11,7 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
     const [ship, setShip] = useState<Ship>(new Ship());
     const [selectedBlockType, setSelectedBlockType] = useState<string | null>(null);
     const [collisionLogging, setCollisionLogging] = useState<boolean>(false);
+    const [currentZoom, setCurrentZoom] = useState<number>(1.0);
 
     // Update ship state when adapter emits changes
     useEffect(() => {
@@ -32,11 +33,10 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
         // Listen to adapter events
         shipBuilderAdapter.on('shipChanged', handleShipChanged);
         shipBuilderAdapter.on('blockSelected', handleBlockSelected);
-        shipBuilderAdapter.on('blockDeselected', handleBlockDeselected);
-
-        // Initial sync
+        shipBuilderAdapter.on('blockDeselected', handleBlockDeselected);        // Initial sync
         handleShipChanged();
         setSelectedBlockType(shipBuilderAdapter.getSelectedBlock());
+        setCurrentZoom(shipBuilderAdapter.getZoom());
 
         return () => {
             shipBuilderAdapter.off('shipChanged', handleShipChanged);
@@ -92,23 +92,22 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
     const handleRepairConnections = useCallback(() => {
         shipBuilderAdapter.repairShip();
         shipBuilderAdapter.triggerShipChanged();
-    }, []);
-
-    const handleZoomIn = useCallback(() => {
+    }, []);    const handleZoomIn = useCallback(() => {
         shipBuilderAdapter.zoomIn();
+        setCurrentZoom(shipBuilderAdapter.getZoom());
     }, []);
 
     const handleZoomOut = useCallback(() => {
         shipBuilderAdapter.zoomOut();
-    }, []); const handleCenterView = useCallback(() => {
+        setCurrentZoom(shipBuilderAdapter.getZoom());
+    }, []);    const handleCenterView = useCallback(() => {
         shipBuilderAdapter.centerCamera();
-    }, []); const handleCollisionLoggingChange = useCallback((enabled: boolean) => {
+        setCurrentZoom(shipBuilderAdapter.getZoom());
+    }, []);const handleCollisionLoggingChange = useCallback((enabled: boolean) => {
         setCollisionLogging(enabled);
         // Enable/disable collision logging in the collision manager
         shipBuilderAdapter.setCollisionLogging(enabled);
-    }, []);
-
-    return (
+    }, []);    return (
         <ShipBuilderOverlay
             ship={ship}
             selectedBlockType={selectedBlockType}
@@ -121,6 +120,7 @@ export const ShipBuilderBridge: React.FC<ShipBuilderBridgeProps> = () => {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onCenterView={handleCenterView}
+            currentZoom={currentZoom}
             collisionLogging={collisionLogging}
             onCollisionLoggingChange={handleCollisionLoggingChange}
         />

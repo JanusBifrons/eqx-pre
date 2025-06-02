@@ -42,6 +42,8 @@ interface SpeedDialActionsProps {
     canTest: boolean;
     hasBlocks: boolean;
     className?: string;
+    // Zoom display
+    currentZoom: number;
     // Collision logging controls
     collisionLogging: boolean;
     onCollisionLoggingChange: (enabled: boolean) => void;
@@ -113,6 +115,22 @@ const ViewControlsContainer = styled(Box)(() => ({
     zIndex: 10,
 }));
 
+const ZoomDisplay = styled(Box)(() => ({
+    backgroundColor: alpha(spaceColors.background.paper, 0.9),
+    backdropFilter: 'blur(8px)',
+    border: `2px solid ${alpha(spaceColors.info.main, 0.4)}`,
+    color: spaceColors.info.main,
+    borderRadius: '8px',
+    padding: '4px 8px',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    minWidth: '50px',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+}));
+
 const ViewControlFab = styled(Fab)(() => ({
     width: 40,
     height: 40,
@@ -151,6 +169,7 @@ export const MuiSpeedDialActions: React.FC<SpeedDialActionsProps> = ({
     canTest,
     hasBlocks,
     className,
+    currentZoom,
     collisionLogging,
     onCollisionLoggingChange,
 }) => {
@@ -218,13 +237,15 @@ export const MuiSpeedDialActions: React.FC<SpeedDialActionsProps> = ({
                     <ViewControlFab onClick={onZoomOut} size="small">
                         <ZoomOutIcon />
                     </ViewControlFab>
-                </Tooltip>
-
-                <Tooltip title="Center View" placement="bottom">
+                </Tooltip>                <Tooltip title="Center View" placement="bottom">
                     <ViewControlFab onClick={onCenterView} size="small">
                         <CenterIcon />
                     </ViewControlFab>
                 </Tooltip>
+
+                <ZoomDisplay>
+                    {currentZoom.toFixed(1)}x
+                </ZoomDisplay>
             </ViewControlsContainer>
 
             {/* Main SpeedDial */}
